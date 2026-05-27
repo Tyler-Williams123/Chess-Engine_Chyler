@@ -182,8 +182,31 @@ void printBoard(Board* board){
 }
 
 void generateMoves(Board* b, MoveList* m){
-    u64 wPShift = b->pieces[WP] = b->pieces[WP] >> 8;
-    u64 bPShift = b->pieces[WP] = b->pieces[BP] >> 8;
+    u64 wPShift = b->pieces[WP] = (b->pieces[WP] >> 8) & ~b->allPieces;
+    u64 bPShift = b->pieces[WP] = (b->pieces[BP] << 8) & ~b->allPieces;
+
+    u64 wKnightShift = knightMoves(b->pieces[WKN]);
+    u64 bKnightShift = knightMoves(b->pieces[BKN]);
+}
+
+u64 knightMoves(u64 bb){
+    u64 notA = ~0x0101010101010101ULL;
+    u64 notB = ~0x0202020202020202ULL;
+
+    u64 notG = ~0x4040404040404040ULL;
+    u64 notH = ~0x8080808080808080ULL;
+
+    u64 moves = ((bb & notH) << 17) |
+                ((bb & notA) << 15) |
+                ((bb & notG & notH) << 10) |
+                ((bb & notA & notB) << 6)  |
+                
+                ((bb & notA) >> 17) |
+                ((bb & notH) >> 15) |
+                ((bb & notA & notB) >> 10) |
+                ((bb & notG & notH) >> 6);
+
+    return moves;
 }
 
 #endif
