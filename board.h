@@ -3,8 +3,8 @@
 
 typedef unsigned char smol;
 typedef unsigned long long u64;
-typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for pieceArr color(12) and type
-                       // 16-19 are captured pieceArr and color(16), 20-23 for promotion pieceArr and color(20), 24-31 for flags
+typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
+                       // 16-19 are captured piece and color, 20-23 for promotion piece and color, 24-31 for flags
 
 enum {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -42,7 +42,7 @@ typedef struct{
     smol count;
 }MoveList;
 
-void movePiece(Board* b, move m){
+void makeMove(Board* b, move m){
     smol piece = (m >> 12) & 15;
     smol color = piece > 6 ? Black : White;
     
@@ -181,14 +181,6 @@ void printBoard(Board* board){
     }
 }
 
-void generateMoves(Board* b, MoveList* m){
-    u64 wPShift = b->pieces[WP] = (b->pieces[WP] >> 8) & ~b->allPieces;
-    u64 bPShift = b->pieces[WP] = (b->pieces[BP] << 8) & ~b->allPieces;
-
-    u64 wKnightShift = knightMoves(b->pieces[WKN]);
-    u64 bKnightShift = knightMoves(b->pieces[BKN]);
-}
-
 u64 knightMoves(u64 bb){
     u64 notA = ~0x0101010101010101ULL;
     u64 notB = ~0x0202020202020202ULL;
@@ -207,6 +199,23 @@ u64 knightMoves(u64 bb){
                 ((bb & notG & notH) >> 6);
 
     return moves;
+}
+
+u64 kingMoves(u64 bb){
+    u64 notA = ~0x0101010101010101ULL;
+    u64 notH = ~0x8080808080808080ULL;
+    
+    return notA;
+}
+
+void generateMoves(Board* b, MoveList* m){
+    u64 wPShift = b->pieces[WP] = (b->pieces[WP] >> 8) & ~b->allPieces;
+    u64 bPShift = b->pieces[WP] = (b->pieces[BP] << 8) & ~b->allPieces;
+
+    u64 wKnightShift = knightMoves(b->pieces[WKN]) & ~b->coloredPieces[White];
+    u64 bKnightShift = knightMoves(b->pieces[BKN]) & ~b->coloredPieces[Black];
+
+
 }
 
 #endif
