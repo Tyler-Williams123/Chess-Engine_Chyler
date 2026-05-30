@@ -37,67 +37,6 @@ typedef struct{
     smol pieceArr[64];
 } Board;
 
-typedef struct{
-    move moves[256];
-    smol count;
-}MoveList;
-
-void makeMove(Board* b, move m){
-    smol piece = (m >> 12) & 15;
-    smol color = piece > 6 ? Black : White;
-    
-    smol from = m & 0x3f;
-    smol to = (m >> 6) & 0x3f;
-
-    smol cPiece = (m >> 16) & 15;
-    
-    b->pieceArr[to] = b->pieceArr[from];
-    b->pieceArr[from] = Empty;
-
-    if(cPiece != 0){
-        smol cColor = cPiece > 6 ? Black : White;
-        b->coloredPieces[cColor] &= ~(1ULL << to);
-        b->pieces[cPiece] &= ~(1ULL << to);
-        b->allPieces &= ~(1ULL << to);
-    }
-
-    b->coloredPieces[color] &= ~(1ULL << from); // old location
-    b->pieces[piece] &= ~(1ULL << from);
-    b->allPieces &= ~(1ULL << to);
-    
-    b->coloredPieces[color] |= (1ULL << to); // new location
-    b->pieces[piece] |= (1ULL << to);
-    b->allPieces |= 1ULL << to;
-}
-
-void undoMove(Board* b, move m){
-    smol piece = (m >> 12) & 15;
-    smol color = piece > 6 ? Black : White;
-    
-    smol from = m & 0x3f;
-    smol to = (m >> 6) & 0x3f;
-
-    smol cPiece = (m >> 16) & 15;
-    smol cColor = cPiece > 6 ? Black : White;
-
-    b->pieceArr[from] = b->pieceArr[to];
-    b->pieceArr[to] = cPiece;
-
-    b->allPieces |= 1ULL << from;
-    b->pieces[piece] |= 1ULL << from;
-    b->coloredPieces[color] |= 1ULL << from;
-
-    b->allPieces &= ~(1ULL << to);
-    b->pieces[piece] &= ~(1ULL << to);
-    b->coloredPieces[color] &= ~(1ULL << to);
-    
-    if(cPiece != 0){
-        b->allPieces |= 1ULL << to;
-        b->pieces[cPiece] |= 1ULL << to;
-        b->coloredPieces[cColor] |= 1ULL << to;
-    }
-}
-
 void initBoard(Board* board){
     board->pieces[WP] = 0x000000000000ff00;
     board->pieces[WR] = 0x0000000000000081;
@@ -181,92 +120,60 @@ void printBoard(Board* board){
     }
 }
 
-u64 knightMoves(u64 bb){
-    u64 notA = ~0x0101010101010101ULL;
-    u64 notB = ~0x0202020202020202ULL;
-
-    u64 notG = ~0x4040404040404040ULL;
-    u64 notH = ~0x8080808080808080ULL;
-
-    u64 moves = ((bb & notH) << 17) |
-                ((bb & notA) << 15) |
-                ((bb & notG & notH) << 10) |
-                ((bb & notA & notB) << 6)  |
-                
-                ((bb & notA) >> 17) |
-                ((bb & notH) >> 15) |
-                ((bb & notA & notB) >> 10) |
-                ((bb & notG & notH) >> 6);
-
-    return moves;
-}
-
-u64 kingMoves(u64 bb){
-    u64 notA = ~0x0101010101010101ULL;
-    u64 notH = ~0x8080808080808080ULL;
+void makeMove(Board* b, move m){
+    smol piece = (m >> 12) & 15;
+    smol color = piece > 6 ? Black : White;
     
-    u64 moves = (bb << 8) |
-                (bb >> 8) |
-                ((bb & notH) << 1) |
-                ((bb & notH) << 9) |
-                ((bb & notA) << 7) |
-                ((bb & notA) >> 1) |
-                ((bb & notA) >> 9) |
-                ((bb & notH) >> 7);
-                
-    return moves;
-}
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
 
-u64 pawnSingleMoves(u64 bb, smol color){
-    u64 moves;
+    smol cPiece = (m >> 16) & 15;
+    
+    b->pieceArr[to] = b->pieceArr[from];
+    b->pieceArr[from] = Empty;
 
-    if(color)
-        moves = bb >> 8;
-    else
-        moves = bb << 8;
-
-    return moves;
-}
-
-u64 pawnDoubleMoves(u64 bb, smol color){
-    u64 row7 = 0x00ff000000000000ULL;
-    u64 row2 = 0x000000000000ff00ULL;
-    u64 moves;
-
-    if(color)
-        moves = (bb & row7) >> 16;
-    else
-        moves = (bb & row2) << 16;
-
-    return moves;
-}
-
-u64 pawnAttacks(u64 bb, smol color){
-    u64 notA = ~0x0101010101010101ULL;
-    u64 notH = ~0x8080808080808080ULL;
-    u64 moves;
-
-    if(color){
-        moves = ((bb & notA) >> 9) |
-                ((bb & notH) >> 7);
-    }
-    else{
-        moves = ((bb & notH) << 9) |
-                ((bb & notA) << 7);
+    if(cPiece != 0){
+        smol cColor = cPiece > 6 ? Black : White;
+        b->coloredPieces[cColor] &= ~(1ULL << to);
+        b->pieces[cPiece] &= ~(1ULL << to);
+        b->allPieces &= ~(1ULL << to);
     }
 
-    return moves;
+    b->coloredPieces[color] &= ~(1ULL << from); // old location
+    b->pieces[piece] &= ~(1ULL << from);
+    b->allPieces &= ~(1ULL << to);
+    
+    b->coloredPieces[color] |= (1ULL << to); // new location
+    b->pieces[piece] |= (1ULL << to);
+    b->allPieces |= 1ULL << to;
 }
 
-void generateMoves(Board* b, MoveList* m){
-    u64 wPawnSingle = pawnSingleMoves(b->pieceArr[WP], White) & ~b->allPieces;
-    u64 bPawnSingle = pawnSingleMoves(b->pieceArr[BP], Black) & ~b->allPieces;
+void undoMove(Board* b, move m){
+    smol piece = (m >> 12) & 15;
+    smol color = piece > 6 ? Black : White;
     
-    u64 wPawnDouble = pawnDoubleMoves(b->pieceArr[WP], White) & ~b->allPieces;
-    u64 bPawnDouble = pawnDoubleMoves(b->pieceArr[BP], Black) & ~b->allPieces;
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
 
-    u64 wKnightShift = knightMoves(b->pieces[WKN]) & ~b->coloredPieces[White];
-    u64 bKnightShift = knightMoves(b->pieces[BKN]) & ~b->coloredPieces[Black];
+    smol cPiece = (m >> 16) & 15;
+    smol cColor = cPiece > 6 ? Black : White;
+
+    b->pieceArr[from] = b->pieceArr[to];
+    b->pieceArr[to] = cPiece;
+
+    b->allPieces |= 1ULL << from;
+    b->pieces[piece] |= 1ULL << from;
+    b->coloredPieces[color] |= 1ULL << from;
+
+    b->allPieces &= ~(1ULL << to);
+    b->pieces[piece] &= ~(1ULL << to);
+    b->coloredPieces[color] &= ~(1ULL << to);
+    
+    if(cPiece != 0){
+        b->allPieces |= 1ULL << to;
+        b->pieces[cPiece] |= 1ULL << to;
+        b->coloredPieces[cColor] |= 1ULL << to;
+    }
 }
 
 #endif

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <windows.h>
 #include "board.h"
+#include "moveGeneration.h"
 
 #define Encode_Move(from, to, piece, capturedPiece) (from | (to << 6) | (piece << 12) | (capturedPiece << 16))
 
