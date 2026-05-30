@@ -205,7 +205,16 @@ u64 kingMoves(u64 bb){
     u64 notA = ~0x0101010101010101ULL;
     u64 notH = ~0x8080808080808080ULL;
     
-    return notA;
+    u64 moves = (bb << 8) |
+                (bb >> 8) |
+                ((bb & notH) << 1) |
+                ((bb & notH) << 9) |
+                ((bb & notA) << 7) |
+                ((bb & notA) >> 1) |
+                ((bb & notA) >> 9) |
+                ((bb & notH) >> 7);
+                
+    return moves;
 }
 
 void generateMoves(Board* b, MoveList* m){
