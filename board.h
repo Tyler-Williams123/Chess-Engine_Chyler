@@ -217,14 +217,56 @@ u64 kingMoves(u64 bb){
     return moves;
 }
 
+u64 pawnSingleMoves(u64 bb, smol color){
+    u64 moves;
+
+    if(color)
+        moves = bb >> 8;
+    else
+        moves = bb << 8;
+
+    return moves;
+}
+
+u64 pawnDoubleMoves(u64 bb, smol color){
+    u64 row7 = 0x00ff000000000000ULL;
+    u64 row2 = 0x000000000000ff00ULL;
+    u64 moves;
+
+    if(color)
+        moves = (bb & row7) >> 16;
+    else
+        moves = (bb & row2) << 16;
+
+    return moves;
+}
+
+u64 pawnAttacks(u64 bb, smol color){
+    u64 notA = ~0x0101010101010101ULL;
+    u64 notH = ~0x8080808080808080ULL;
+    u64 moves;
+
+    if(color){
+        moves = ((bb & notA) >> 9) |
+                ((bb & notH) >> 7);
+    }
+    else{
+        moves = ((bb & notH) << 9) |
+                ((bb & notA) << 7);
+    }
+
+    return moves;
+}
+
 void generateMoves(Board* b, MoveList* m){
-    u64 wPShift = b->pieces[WP] = (b->pieces[WP] >> 8) & ~b->allPieces;
-    u64 bPShift = b->pieces[WP] = (b->pieces[BP] << 8) & ~b->allPieces;
+    u64 wPawnSingle = pawnSingleMoves(b->pieceArr[WP], White) & ~b->allPieces;
+    u64 bPawnSingle = pawnSingleMoves(b->pieceArr[BP], Black) & ~b->allPieces;
+    
+    u64 wPawnDouble = pawnDoubleMoves(b->pieceArr[WP], White) & ~b->allPieces;
+    u64 bPawnDouble = pawnDoubleMoves(b->pieceArr[BP], Black) & ~b->allPieces;
 
     u64 wKnightShift = knightMoves(b->pieces[WKN]) & ~b->coloredPieces[White];
     u64 bKnightShift = knightMoves(b->pieces[BKN]) & ~b->coloredPieces[Black];
-
-
 }
 
 #endif

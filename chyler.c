@@ -7,8 +7,6 @@
 
 Board board;
 
-
-
 int main(){
     initBoard(&board);
 
