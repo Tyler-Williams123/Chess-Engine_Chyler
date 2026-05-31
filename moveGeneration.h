@@ -84,8 +84,66 @@ u64 pawnAttacks(u64 bb, smol color){
     return moves;
 }
 
-u64 rookAttacks(Board b, smol color){
-    return 0;
+u64 rookMoves(Board* b, smol sq){
+    u64 moves = 0;
+    smol color = (1ULL << sq) & b->coloredPieces[Black] ? 1 : 0;
+    
+    u64 sameColorBB = b->coloredPieces[color];
+    u64 otherColorBB = b->coloredPieces[!color];
+    
+    for(int i = 1; i <= 7 - (sq % 8); i++){ //East
+        u64 nextPos = 1ULL << (sq + i);
+        if(nextPos & sameColorBB){
+            break;
+        }
+        moves |= nextPos;
+        
+        if(nextPos & otherColorBB){
+            break;
+        }
+    }
+    
+    for(int i = 1; i <= (sq % 8); i++){ //West
+        u64 nextPos = 1ULL << (sq - i);
+        if(nextPos & sameColorBB){
+            break;
+        }
+        moves |= nextPos;
+        
+        if(nextPos & otherColorBB){
+            break;
+        }
+    }
+
+    for(int i = 1; i <= 7 - (sq / 8); i++){ //North
+        u64 nextPos = 1ULL << (sq + 8*i);
+        if(nextPos & sameColorBB){
+            break;
+        }
+        moves |= nextPos;
+        
+        if(nextPos & otherColorBB){
+            break;
+        }
+    }
+
+    for(int i = 1; i <= (sq / 8); i++){ //South
+        u64 nextPos = 1ULL << (sq - 8*i);
+        if(nextPos & sameColorBB){
+            break;
+        }
+        moves |= nextPos;
+        
+        if(nextPos & otherColorBB){
+            break;
+        }
+    }
+
+    return moves;
+}
+
+u64 bishopMoves(Board b, smol color){
+
 }
 
 void generateMoves(Board* b, MoveList* m){
@@ -102,8 +160,6 @@ void generateMoves(Board* b, MoveList* m){
 
     u64 wKnightShift = knightMoves(b->pieces[WKN]) & ~b->coloredPieces[White];
     u64 bKnightShift = knightMoves(b->pieces[BKN]) & ~b->coloredPieces[Black];
-
-    
 }
 
 #endif
