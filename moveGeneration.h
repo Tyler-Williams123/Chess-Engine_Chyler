@@ -92,49 +92,49 @@ u64 rookMoves(Board* b, smol sq){
     u64 otherColorBB = b->coloredPieces[!color];
     
     for(int i = 1; i <= 7 - (sq % 8); i++){ //East
-        u64 nextPos = 1ULL << (sq + i);
-        if(nextPos & sameColorBB){
+        u64 target = 1ULL << (sq + i);
+        if(target & sameColorBB){
             break;
         }
-        moves |= nextPos;
+        moves |= target;
         
-        if(nextPos & otherColorBB){
+        if(target & otherColorBB){
             break;
         }
     }
     
     for(int i = 1; i <= (sq % 8); i++){ //West
-        u64 nextPos = 1ULL << (sq - i);
-        if(nextPos & sameColorBB){
+        u64 target = 1ULL << (sq - i);
+        if(target & sameColorBB){
             break;
         }
-        moves |= nextPos;
+        moves |= target;
         
-        if(nextPos & otherColorBB){
+        if(target & otherColorBB){
             break;
         }
     }
 
     for(int i = 1; i <= 7 - (sq / 8); i++){ //North
-        u64 nextPos = 1ULL << (sq + 8*i);
-        if(nextPos & sameColorBB){
+        u64 target = 1ULL << (sq + 8*i);
+        if(target & sameColorBB){
             break;
         }
-        moves |= nextPos;
+        moves |= target;
         
-        if(nextPos & otherColorBB){
+        if(target & otherColorBB){
             break;
         }
     }
 
     for(int i = 1; i <= (sq / 8); i++){ //South
-        u64 nextPos = 1ULL << (sq - 8*i);
-        if(nextPos & sameColorBB){
+        u64 target = 1ULL << (sq - 8*i);
+        if(target & sameColorBB){
             break;
         }
-        moves |= nextPos;
+        moves |= target;
         
-        if(nextPos & otherColorBB){
+        if(target & otherColorBB){
             break;
         }
     }
@@ -142,8 +142,83 @@ u64 rookMoves(Board* b, smol sq){
     return moves;
 }
 
-u64 bishopMoves(Board b, smol color){
+u64 bishopMoves(Board* b, smol sq){
+    u64 moves = 0;
 
+    smol color = b->coloredPieces[Black] & (1ULL << sq) ? Black : White;
+
+    u64 SameColorBB = b->coloredPieces[color];
+    u64 OtherColorBB = b->coloredPieces[!color];
+
+    smol rank = sq/8;
+    smol file = sq%8;
+
+    smol NE = (7-rank) > (7-file) ? 7-file : 7-rank;
+    smol NW = (7-rank) > (file) ? file : 7-rank;
+    smol SW = (rank) > (file) ? file : rank;
+    smol SE = (rank) > (7-file) ? 7-file : rank;
+
+    for(int i = 1; i <= NE; i++){ // NorthEast
+        smol target = sq + i*9;
+        
+        if(((1ULL << target) & SameColorBB)){
+            break;
+        }
+        
+        moves |= 1ULL << target;
+
+        if((1ULL << target) & OtherColorBB){
+            break;
+        }
+    }
+
+    for(int i = 1; i <= NW; i++){ // NorthWest
+        smol target = sq + i*7;
+        
+        if(((1ULL << target) & SameColorBB)){
+            break;
+        }
+        
+        moves |= 1ULL << target;
+
+        if((1ULL << target) & OtherColorBB){
+            break;
+        }
+    }
+
+    for(int i = 1; i <= SW; i++){ // SouthWest
+        smol target = sq - i*9;
+        
+        if(((1ULL << target) & SameColorBB)){
+            break;
+        }
+        
+        moves |= 1ULL << target;
+
+        if((1ULL << target) & OtherColorBB){
+            break;
+        }
+    }
+
+    for(int i = 1; i <= SE; i++){ // SouthEast
+        smol target = sq - i*7;
+        
+        if(((1ULL << target) & SameColorBB)){
+            break;
+        }
+        
+        moves |= 1ULL << target;
+
+        if((1ULL << target) & OtherColorBB){
+            break;
+        }
+    }
+
+    return moves;
+}
+
+u64 queenMoves(Board* b, smol sq){
+    return bishopMoves(b, sq) | rookMoves(b, sq);
 }
 
 void generateMoves(Board* b, MoveList* m){
