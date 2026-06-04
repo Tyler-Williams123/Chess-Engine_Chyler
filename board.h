@@ -36,9 +36,12 @@ typedef struct{
     u64 allPieces;
 
     smol pieceArr[64];
+    smol turn;
 } Board;
 
 void initBoard(Board* board){
+    board->turn = 0;
+
     board->pieces[WP] = 0x000000000000ff00;
     board->pieces[WR] = 0x0000000000000081;
     board->pieces[WN] = 0x0000000000000042;
@@ -128,7 +131,7 @@ void makeMove(Board* b, move m){
     smol from = m & 0x3f;
     smol to = (m >> 6) & 0x3f;
 
-    smol cPiece = (m >> 16) & 15;
+    smol cPiece = b->pieceArr[to];
     
     b->pieceArr[to] = b->pieceArr[from];
     b->pieceArr[from] = Empty;
@@ -142,11 +145,13 @@ void makeMove(Board* b, move m){
 
     b->coloredPieces[color] &= ~(1ULL << from); // old location
     b->pieces[piece] &= ~(1ULL << from);
-    b->allPieces &= ~(1ULL << to);
+    b->allPieces &= ~(1ULL << from);
     
     b->coloredPieces[color] |= (1ULL << to); // new location
     b->pieces[piece] |= (1ULL << to);
     b->allPieces |= 1ULL << to;
+
+    b->turn++;
 }
 
 void undoMove(Board* b, move m){
@@ -175,6 +180,8 @@ void undoMove(Board* b, move m){
         b->pieces[cPiece] |= 1ULL << to;
         b->coloredPieces[cColor] |= 1ULL << to;
     }
+
+    b->turn--;
 }
 
 #endif

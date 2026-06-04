@@ -197,7 +197,6 @@ void generateWhitePawnMoves(Board* b, MoveList* m){
 
         pawns &= pawns - 1;
     }
-
 }
 
 void generateBlackPawnMoves(Board* b, MoveList* m){
@@ -234,7 +233,7 @@ void generateBlackPawnMoves(Board* b, MoveList* m){
     }
 }
 
-u64 rookMoves(Board* b, smol sq){
+u64 rookTargets(Board* b, smol sq){
     u64 moves = 0;
     smol color = (1ULL << sq) & b->coloredPieces[Black] ? 1 : 0;
     
@@ -292,7 +291,43 @@ u64 rookMoves(Board* b, smol sq){
     return moves;
 }
 
-u64 bishopMoves(Board* b, smol sq){
+void generateWhiteRookMoves(Board* b, MoveList* m){
+    u64 rooks = b->pieces[WR];
+    while(rooks){
+        smol from = __builtin_ctzll(rooks & -rooks);
+
+        u64 moves = rookTargets(b, from);
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol capture = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, WR, capture);
+
+            moves &= moves - 1;
+        }
+
+        rooks &= rooks - 1;
+    }
+}
+
+void generateBlackRookMoves(Board* b, MoveList* m){
+    u64 rooks = b->pieces[BR];
+    while(rooks){
+        smol from = __builtin_ctzll(rooks & -rooks);
+
+        u64 moves = rookTargets(b, from);
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol capture = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, BR, capture);
+
+            moves &= moves - 1;
+        }
+
+        rooks &= rooks - 1;
+    }
+}
+
+u64 bishopTargets(Board* b, smol sq){
     u64 moves = 0;
 
     smol color = b->coloredPieces[Black] & (1ULL << sq) ? Black : White;
@@ -367,16 +402,117 @@ u64 bishopMoves(Board* b, smol sq){
     return moves;
 }
 
-u64 queenMoves(Board* b, smol sq){
-    return bishopMoves(b, sq) | rookMoves(b, sq);
+void generateWhiteBishopMoves(Board* b, MoveList* m){
+    u64 bishops = b->pieces[WB];
+    while(bishops){
+        smol from = __builtin_ctzll(bishops & -bishops);
+
+        u64 moves = bishopTargets(b, from);
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol capture = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, WB, capture);
+
+            moves &= moves - 1;
+        }
+
+        bishops &= bishops - 1;
+    }
+}
+
+void generateBlackBishopMoves(Board* b, MoveList* m){
+    u64 bishops = b->pieces[BB];
+    while(bishops){
+        smol from = __builtin_ctzll(bishops & -bishops);
+
+        u64 moves = bishopTargets(b, from);
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol capture = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, BB, capture);
+
+            moves &= moves - 1;
+        }
+
+        bishops &= bishops - 1;
+    }
+}
+
+u64 queenTargets(Board* b, smol sq){
+    return bishopTargets(b, sq) | rookTargets(b, sq);
+}
+
+void generateWhiteQueenMoves(Board* b, MoveList* m){
+    u64 queens = b->pieces[WQ];
+    while(queens){
+        smol from = __builtin_ctzll(queens & -queens);
+
+        u64 moves = queenTargets(b, from);
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol capture = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, WQ, capture);
+
+            moves &= moves - 1;
+        }
+
+        queens &= queens - 1;
+    }
+}
+
+void generateBlackQueenMoves(Board* b, MoveList* m){
+    u64 queens = b->pieces[BQ];
+    while(queens){
+        smol from = __builtin_ctzll(queens & -queens);
+
+        u64 moves = queenTargets(b, from);
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol capture = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, BQ, capture);
+
+            moves &= moves - 1;
+        }
+
+        queens &= queens - 1;
+    }
 }
 
 void generateMoves(Board* b, MoveList* m){
-    generateWhiteKnightMoves(b, m);
-    generateWhiteKingMoves(b, m);
-    
-    generateBlackKnightMoves(b, m);
-    generateBlackKingMoves(b, m);
+    m->count = 0;
+    if(b->turn % 2 == 0){
+        generateWhitePawnMoves(b, m);
+        generateWhiteKingMoves(b, m);
+        generateWhiteKnightMoves(b, m);
+        generateWhiteRookMoves(b, m);
+        generateWhiteBishopMoves(b, m);
+        generateWhiteQueenMoves(b, m);
+    }
+    else{
+        generateBlackPawnMoves(b, m);
+        generateBlackKingMoves(b, m);
+        generateBlackKnightMoves(b, m);
+        generateBlackRookMoves(b, m);
+        generateBlackBishopMoves(b, m);
+        generateBlackQueenMoves(b, m);
+    }
+}
+
+int perft(smol depth, Board* b){
+    MoveList moves;
+    int total = 0;
+
+    if(depth <= 0){
+        return 1;
+    }
+
+    generateMoves(b, &moves);
+    for(int i = 0; i < moves.count; i++){
+        makeMove(b, moves.moves[i]);
+        total += perft(depth - 1, b);
+        undoMove(b, moves.moves[i]);
+    }
+    return total;
 }
 
 #endif

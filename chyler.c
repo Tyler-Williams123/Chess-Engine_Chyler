@@ -9,20 +9,21 @@ MoveList moveList;
 
 int main(){
     initBoard(&board);
-    printBoard(&board);
+    smol count = 0;
+    //printBoard(&board);
     
-    Sleep(2000);
-    
-    printf("\n\n");
-    
-    generateMoves(&board, &moveList);
-    makeMove(&board, moveList.moves[1]);
-    makeMove(&board, moveList.moves[2]);
-    makeMove(&board, moveList.moves[4]);
-    makeMove(&board, moveList.moves[6]);
+    //while(count < 100){
+    //    Sleep(2000);
+    //    printf("\n\n");
+        
+    //    generateMoves(&board, &moveList);
+    //    makeMove(&board, moveList.moves[0]);
 
-    
-    printBoard(&board);
+    //    printBoard(&board);
+    //    count++;
+    //}
+
+    printf("%d", perft(3, &board));
 
     return 0;
 }
