@@ -4,21 +4,22 @@
 #include "board.h"
 #include "moveGeneration.h"
 
-#define Encode_Move(from, to, piece, capturedPiece) (from | (to << 6) | (piece << 12) | (capturedPiece << 16))
-
 Board board;
+MoveList moveList;
 
 int main(){
     initBoard(&board);
-
     printBoard(&board);
     
     Sleep(2000);
     
     printf("\n\n");
-    move knightD4 = Encode_Move(B1, C3, WKN, Empty);
     
-    makeMove(&board, knightD4);
+    generateMoves(&board, &moveList);
+    makeMove(&board, moveList.moves[1]);
+    makeMove(&board, moveList.moves[2]);
+    makeMove(&board, moveList.moves[4]);
+    makeMove(&board, moveList.moves[6]);
 
     
     printBoard(&board);

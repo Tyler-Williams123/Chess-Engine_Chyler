@@ -3,6 +3,7 @@
 
 typedef unsigned char smol;
 typedef unsigned long long u64;
+
 typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
                        // 16-19 are captured piece and color, 20-23 for promotion piece and color, 24-31 for flags
 
@@ -26,7 +27,7 @@ enum {
 };
 
 enum {
-    Empty, WP, WR, WKN, WB, WK, WQ, BP, BR, BKN, BB, BK, BQ
+    Empty, WP, WR, WN, WB, WK, WQ, BP, BR, BN, BB, BK, BQ
 };
 
 typedef struct{
@@ -40,14 +41,14 @@ typedef struct{
 void initBoard(Board* board){
     board->pieces[WP] = 0x000000000000ff00;
     board->pieces[WR] = 0x0000000000000081;
-    board->pieces[WKN] = 0x0000000000000042;
+    board->pieces[WN] = 0x0000000000000042;
     board->pieces[WB] = 0x0000000000000024;
     board->pieces[WK] = 0x0000000000000008;
     board->pieces[WQ] = 0x0000000000000010;
 
     board->pieces[BP] = 0x00ff000000000000;
     board->pieces[BR] = 0x8100000000000000;
-    board->pieces[BKN] = 0x4200000000000000;
+    board->pieces[BN] = 0x4200000000000000;
     board->pieces[BB] = 0x2400000000000000;
     board->pieces[BK] = 0x1000000000000000;
     board->pieces[BQ] = 0x0800000000000000;
@@ -57,12 +58,12 @@ void initBoard(Board* board){
     board->allPieces = 0xffff00000000ffff;
 
     board->pieceArr[A8] = BR;
-    board->pieceArr[B8] = BKN;
+    board->pieceArr[B8] = BN;
     board->pieceArr[C8] = BB;
     board->pieceArr[D8] = BQ;
     board->pieceArr[E8] = BK;
     board->pieceArr[F8] = BB;
-    board->pieceArr[G8] = BKN;
+    board->pieceArr[G8] = BN;
     board->pieceArr[H8] = BR;
     for (int i = A7; i <= H7; i++){
         board->pieceArr[i] = BP;
@@ -74,12 +75,12 @@ void initBoard(Board* board){
         board->pieceArr[i] = WP;
     }
         board->pieceArr[A1] = WR;
-        board->pieceArr[B1] = WKN;
+        board->pieceArr[B1] = WN;
         board->pieceArr[C1] = WB;
         board->pieceArr[D1] = WQ;
         board->pieceArr[E1] = WK;
         board->pieceArr[F1] = WB;
-        board->pieceArr[G1] = WKN;
+        board->pieceArr[G1] = WN;
         board->pieceArr[H1] = WR;
 }
 
@@ -95,8 +96,8 @@ void printBoard(Board* board){
             printf("BP ");
             else if(board->pieceArr[sq] == BR)
             printf("BR ");
-            else if(board->pieceArr[sq] == BKN)
-            printf("BKN ");
+            else if(board->pieceArr[sq] == BN)
+            printf("BN ");
             else if(board->pieceArr[sq] == BB)
             printf("BB ");
             else if(board->pieceArr[sq] == BK)
@@ -107,8 +108,8 @@ void printBoard(Board* board){
             printf("WP ");
             else if(board->pieceArr[sq] == WR)
             printf("WR ");
-            else if(board->pieceArr[sq] == WKN)
-            printf("WKN ");
+            else if(board->pieceArr[sq] == WN)
+            printf("WN ");
             else if(board->pieceArr[sq] == WB)
             printf("WB ");
             else if(board->pieceArr[sq] == WK)

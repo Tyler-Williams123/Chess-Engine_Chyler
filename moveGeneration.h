@@ -2,17 +2,21 @@
 #define Move_Generation_H
 #include "board.h"
 
+#define Encode_Move(from, to, piece, capturedPiece) (from | (to << 6) | (piece << 12) | (capturedPiece << 16))
+
 typedef struct{
     move moves[256];
     smol count;
 }MoveList;
 
-u64 knightMoves(u64 bb){
+u64 knightTargets(smol sq){
     u64 notA = ~0x0101010101010101ULL;
     u64 notB = ~0x0202020202020202ULL;
 
     u64 notG = ~0x4040404040404040ULL;
     u64 notH = ~0x8080808080808080ULL;
+
+    u64 bb = 1ULL << sq;
 
     u64 moves = ((bb & notH) << 17) |
                 ((bb & notA) << 15) |
@@ -27,10 +31,48 @@ u64 knightMoves(u64 bb){
     return moves;
 }
 
-u64 kingMoves(u64 bb){
+void generateKnightMoves(Board* b, MoveList* m){
+    u64 wKnights = b->pieces[WN];
+    u64 bKnights = b->pieces[BN];
+
+    while(wKnights){
+        u64 knight = wKnights & -wKnights;
+        smol from = __builtin_ctzll(knight);
+
+        u64 moves = knightTargets(from) & ~b->coloredPieces[White];
+
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol captured = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, WN, captured);
+
+            moves &= moves - 1;
+        }
+        wKnights &= wKnights - 1;
+    }
+    
+    while(bKnights){
+        u64 knight = bKnights & -bKnights;
+        smol from = __builtin_ctzll(knight);
+
+        u64 moves = knightTargets(from) & ~b->coloredPieces[Black];
+
+        while(moves){
+            smol to = __builtin_ctzll(moves & -moves);
+            smol captured = b->pieceArr[to];
+            m->moves[m->count++] = Encode_Move(from, to, BN, captured);
+
+            moves &= moves - 1;
+        }
+        bKnights &= bKnights - 1;
+    }
+}
+
+u64 kingMoves(smol sq){
     u64 notA = ~0x0101010101010101ULL;
     u64 notH = ~0x8080808080808080ULL;
     
+    u64 bb = 1ULL << sq;
     u64 moves = (bb << 8) |
                 (bb >> 8) |
                 ((bb & notH) << 1) |
@@ -67,11 +109,13 @@ u64 pawnDoubleMoves(u64 bb, smol color){
     return moves;
 }
 
-u64 pawnAttacks(u64 bb, smol color){
+u64 pawnAttacks(u64 sq, smol color){
     u64 notA = ~0x0101010101010101ULL;
     u64 notH = ~0x8080808080808080ULL;
     u64 moves;
 
+
+    u64 bb = 1ULL << sq;
     if(color){
         moves = ((bb & notA) >> 9) |
                 ((bb & notH) >> 7);
@@ -232,9 +276,8 @@ void generateMoves(Board* b, MoveList* m){
 
     u64 wPawnCaptures = pawnAttacks(b->pieces[WP], White) & b->coloredPieces[Black];
     u64 bPawnCaptures = pawnAttacks(b->pieces[BP], Black) & b->coloredPieces[White];
-
-    u64 wKnightShift = knightMoves(b->pieces[WKN]) & ~b->coloredPieces[White];
-    u64 bKnightShift = knightMoves(b->pieces[BKN]) & ~b->coloredPieces[Black];
+   
+    generateKnightMoves(b, m);
 }
 
 #endif
