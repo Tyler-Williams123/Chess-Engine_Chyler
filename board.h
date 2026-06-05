@@ -136,7 +136,7 @@ void makeMove(Board* b, move m){
     b->pieceArr[to] = b->pieceArr[from];
     b->pieceArr[from] = Empty;
 
-    if(cPiece != 0){
+    if(cPiece != Empty){
         smol cColor = cPiece > 6 ? Black : White;
         b->coloredPieces[cColor] &= ~(1ULL << to);
         b->pieces[cPiece] &= ~(1ULL << to);

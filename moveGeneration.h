@@ -9,6 +9,23 @@ typedef struct{
     smol count;
 }MoveList;
 
+const char* moveToString(move m, char* b){
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
+
+    char file = 'a' + (from % 8);
+    char rank = '1' + (from / 8);
+    b[0] = file;
+    b[1] = rank;
+
+    file = 'a' + (to % 8);
+    rank = '1' + (to / 8);
+    b[2] = file;
+    b[3] = rank;
+
+    b[4] = '\0';
+}
+
 u64 knightTargets(smol sq){
     u64 notA = ~0x0101010101010101ULL;
     u64 notB = ~0x0202020202020202ULL;
@@ -241,7 +258,7 @@ void generateBlackPawnMoves(Board* b, MoveList* m){
 
 u64 rookTargets(Board* b, smol sq){
     u64 moves = 0;
-    smol color = (1ULL << sq) & b->coloredPieces[Black] ? 1 : 0;
+    smol color = (1ULL << sq) & b->coloredPieces[Black] ? Black : White;
     
     u64 sameColorBB = b->coloredPieces[color];
     u64 otherColorBB = b->coloredPieces[!color];
@@ -522,9 +539,9 @@ smol squareAttacked(Board* b, smol sq, smol color){ // color is the attacking co
     return 0;
 }
 
-void generateMoves(Board* b, MoveList* m){
+void generateMoves(Board* b, MoveList* m){ // generates legal moves only
     m->count = 0;
-    if(b->turn % 2 == 0){
+    if(b->turn % 2 == White){
         generateWhitePawnMoves(b, m);
         generateWhiteKingMoves(b, m);
         generateWhiteKnightMoves(b, m);
@@ -541,6 +558,47 @@ void generateMoves(Board* b, MoveList* m){
         generateBlackQueenMoves(b, m);
     }
 }
+
+// void generateMoves(Board* b, MoveList* m){ // generates legal moves only
+//     MoveList pseudo;
+//     pseudo.count = 0;
+
+//     m->count = 0;
+//     if(b->turn % 2 == White){
+//         generateWhitePawnMoves(b, &pseudo);
+//         generateWhiteKingMoves(b, &pseudo);
+//         generateWhiteKnightMoves(b, &pseudo);
+//         generateWhiteRookMoves(b, &pseudo);
+//         generateWhiteBishopMoves(b, &pseudo);
+//         generateWhiteQueenMoves(b, &pseudo);
+
+//         for(int i = 0; i < pseudo.count; i++){
+//             makeMove(b, pseudo.moves[i]);
+
+//             if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), Black)){
+//                 m->moves[m->count++] = pseudo.moves[i];
+//             }
+//             undoMove(b, pseudo.moves[i]);
+//         }
+//     }
+//     else{
+//         generateBlackPawnMoves(b, &pseudo);
+//         generateBlackKingMoves(b, &pseudo);
+//         generateBlackKnightMoves(b, &pseudo);
+//         generateBlackRookMoves(b, &pseudo);
+//         generateBlackBishopMoves(b, &pseudo);
+//         generateBlackQueenMoves(b, &pseudo);
+
+//         for(int i = 0; i < pseudo.count; i++){
+//             makeMove(b, pseudo.moves[i]);
+
+//             if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), White)){
+//                 m->moves[m->count++] = pseudo.moves[i];
+//             }
+//             undoMove(b, pseudo.moves[i]);
+//         }
+//     }
+// }
 
 int perft(smol depth, Board* b){
     MoveList moves;
@@ -559,4 +617,23 @@ int perft(smol depth, Board* b){
     return total;
 }
 
+int perftDevide(smol depth, Board* b){
+    MoveList moves;
+
+    if(depth <= 0){
+        return 1;
+    }
+
+    generateMoves(b, &moves);
+    for(int i = 0; i < moves.count; i++){
+        makeMove(b, moves.moves[i]);
+
+        char buffer[6];
+        moveToString(moves.moves[i], buffer);
+        printf("%s %d\n", buffer, perft(depth - 1, b));
+        
+        undoMove(b, moves.moves[i]);
+    }
+    return -1;
+}
 #endif

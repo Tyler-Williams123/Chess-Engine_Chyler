@@ -4,16 +4,18 @@
 #include "board.h"
 #include "moveGeneration.h"
 
+
 Board board;
 MoveList moveList;
 
 int main(){
     initBoard(&board);
-    smol count = 0;
-    //printBoard(&board);
     
-    //while(count < 100){
-    //    Sleep(2000);
+    smol count = 0;
+    // printBoard(&board);
+    
+    // while(count < 100){
+    //    Sleep(500);
     //    printf("\n\n");
         
     //    generateMoves(&board, &moveList);
@@ -21,9 +23,9 @@ int main(){
 
     //    printBoard(&board);
     //    count++;
-    //}
+    // }
 
-    printf("%d", perft(3, &board));
+    printf("%d", perftDevide(2, &board));
 
     return 0;
 }
