@@ -73,6 +73,8 @@ void generateBlackKnightMoves(Board* b, MoveList* m){
     }
 }
 
+// kinghts
+
 u64 kingTargets(smol sq){
     u64 notA = ~0x0101010101010101ULL;
     u64 notH = ~0x8080808080808080ULL;
@@ -121,6 +123,8 @@ void generateBlackKingMoves(Board* b, MoveList* m){
         moves &= moves - 1;
     }
 }
+
+// kings
 
 u64 pawnSingleMoves(smol sq, smol color){
     u64 move;
@@ -233,6 +237,8 @@ void generateBlackPawnMoves(Board* b, MoveList* m){
     }
 }
 
+// pawns
+
 u64 rookTargets(Board* b, smol sq){
     u64 moves = 0;
     smol color = (1ULL << sq) & b->coloredPieces[Black] ? 1 : 0;
@@ -326,6 +332,8 @@ void generateBlackRookMoves(Board* b, MoveList* m){
         rooks &= rooks - 1;
     }
 }
+
+// rooks
 
 u64 bishopTargets(Board* b, smol sq){
     u64 moves = 0;
@@ -438,6 +446,8 @@ void generateBlackBishopMoves(Board* b, MoveList* m){
     }
 }
 
+// bishops
+
 u64 queenTargets(Board* b, smol sq){
     return bishopTargets(b, sq) | rookTargets(b, sq);
 }
@@ -476,6 +486,40 @@ void generateBlackQueenMoves(Board* b, MoveList* m){
 
         queens &= queens - 1;
     }
+}
+
+// queens
+
+smol squareAttacked(Board* b, smol sq, smol color){ // color is the attacking color
+    if(color){
+        if(pawnAttacks(sq, White) & b->pieces[BP])
+            return 1;
+        if(knightTargets(sq) & b->pieces[BN])
+            return 1;
+        if(rookTargets(b, sq) & b->pieces[BR])
+            return 1;
+        if(bishopTargets(b, sq) & b->pieces[BB])
+            return 1;
+        if(queenTargets(b, sq) & b->pieces[BQ])
+            return 1;
+        if(kingTargets(sq) & b->pieces[BK])
+            return 1;
+    }
+    else{
+        if(pawnAttacks(sq, Black) & b->pieces[WP])
+            return 1;
+        if(knightTargets(sq) & b->pieces[WN])
+            return 1;
+        if(rookTargets(b, sq) & b->pieces[WR])
+            return 1;
+        if(bishopTargets(b, sq) & b->pieces[WB])
+            return 1;
+        if(queenTargets(b, sq) & b->pieces[WQ])
+            return 1;
+        if(kingTargets(sq) & b->pieces[WK])
+            return 1;
+    }
+    return 0;
 }
 
 void generateMoves(Board* b, MoveList* m){
