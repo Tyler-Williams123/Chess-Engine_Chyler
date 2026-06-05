@@ -507,7 +507,7 @@ void generateBlackQueenMoves(Board* b, MoveList* m){
 
 // queens
 
-smol squareAttacked(Board* b, smol sq, smol color){ // color is the attacking color
+smol squareAttacked(Board* b, smol sq, smol color){ // color is king color
     if(color){
         if(pawnAttacks(sq, White) & b->pieces[BP])
             return 1;
@@ -540,65 +540,45 @@ smol squareAttacked(Board* b, smol sq, smol color){ // color is the attacking co
 }
 
 void generateMoves(Board* b, MoveList* m){ // generates legal moves only
+    MoveList pseudo;
+    pseudo.count = 0;
+
     m->count = 0;
     if(b->turn % 2 == White){
-        generateWhitePawnMoves(b, m);
-        generateWhiteKingMoves(b, m);
-        generateWhiteKnightMoves(b, m);
-        generateWhiteRookMoves(b, m);
-        generateWhiteBishopMoves(b, m);
-        generateWhiteQueenMoves(b, m);
+        generateWhitePawnMoves(b, &pseudo);
+        generateWhiteKingMoves(b, &pseudo);
+        generateWhiteKnightMoves(b, &pseudo);
+        generateWhiteRookMoves(b, &pseudo);
+        generateWhiteBishopMoves(b, &pseudo);
+        generateWhiteQueenMoves(b, &pseudo);
+
+        for(int i = 0; i < pseudo.count; i++){
+            makeMove(b, pseudo.moves[i]);
+
+            if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), White)){
+                m->moves[m->count++] = pseudo.moves[i];
+            }
+            undoMove(b, pseudo.moves[i]);
+        }
     }
     else{
-        generateBlackPawnMoves(b, m);
-        generateBlackKingMoves(b, m);
-        generateBlackKnightMoves(b, m);
-        generateBlackRookMoves(b, m);
-        generateBlackBishopMoves(b, m);
-        generateBlackQueenMoves(b, m);
+        generateBlackPawnMoves(b, &pseudo);
+        generateBlackKingMoves(b, &pseudo);
+        generateBlackKnightMoves(b, &pseudo);
+        generateBlackRookMoves(b, &pseudo);
+        generateBlackBishopMoves(b, &pseudo);
+        generateBlackQueenMoves(b, &pseudo);
+
+        for(int i = 0; i < pseudo.count; i++){
+            makeMove(b, pseudo.moves[i]);
+
+            if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), Black)){
+                m->moves[m->count++] = pseudo.moves[i];
+            }
+            undoMove(b, pseudo.moves[i]);
+        }
     }
 }
-
-// void generateMoves(Board* b, MoveList* m){ // generates legal moves only
-//     MoveList pseudo;
-//     pseudo.count = 0;
-
-//     m->count = 0;
-//     if(b->turn % 2 == White){
-//         generateWhitePawnMoves(b, &pseudo);
-//         generateWhiteKingMoves(b, &pseudo);
-//         generateWhiteKnightMoves(b, &pseudo);
-//         generateWhiteRookMoves(b, &pseudo);
-//         generateWhiteBishopMoves(b, &pseudo);
-//         generateWhiteQueenMoves(b, &pseudo);
-
-//         for(int i = 0; i < pseudo.count; i++){
-//             makeMove(b, pseudo.moves[i]);
-
-//             if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), Black)){
-//                 m->moves[m->count++] = pseudo.moves[i];
-//             }
-//             undoMove(b, pseudo.moves[i]);
-//         }
-//     }
-//     else{
-//         generateBlackPawnMoves(b, &pseudo);
-//         generateBlackKingMoves(b, &pseudo);
-//         generateBlackKnightMoves(b, &pseudo);
-//         generateBlackRookMoves(b, &pseudo);
-//         generateBlackBishopMoves(b, &pseudo);
-//         generateBlackQueenMoves(b, &pseudo);
-
-//         for(int i = 0; i < pseudo.count; i++){
-//             makeMove(b, pseudo.moves[i]);
-
-//             if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), White)){
-//                 m->moves[m->count++] = pseudo.moves[i];
-//             }
-//             undoMove(b, pseudo.moves[i]);
-//         }
-//     }
-// }
 
 int perft(smol depth, Board* b){
     MoveList moves;
