@@ -46,8 +46,8 @@ void initBoard(Board* board){
     board->pieces[WR] = 0x0000000000000081;
     board->pieces[WN] = 0x0000000000000042;
     board->pieces[WB] = 0x0000000000000024;
-    board->pieces[WK] = 0x0000000000000008;
-    board->pieces[WQ] = 0x0000000000000010;
+    board->pieces[WK] = 0x0000000000000010;
+    board->pieces[WQ] = 0x0000000000000008;
 
     board->pieces[BP] = 0x00ff000000000000;
     board->pieces[BR] = 0x8100000000000000;

@@ -50,19 +50,16 @@ u64 knightTargets(smol sq){
 
 void generateWhiteKnightMoves(Board* b, MoveList* m){
     u64 wKnights = b->pieces[WN];
-    u64 bKnights = b->pieces[BN];
 
     while(wKnights){
         u64 knight = wKnights & -wKnights;
         smol from = __builtin_ctzll(knight);
-
         u64 moves = knightTargets(from) & ~b->coloredPieces[White];
 
         while(moves){
-            smol to = __builtin_ctzll(moves & -moves);
+            smol to = __builtin_ctzll(moves);
             smol captured = b->pieceArr[to];
             m->moves[m->count++] = Encode_Move(from, to, WN, captured);
-
             moves &= moves - 1;
         }
         wKnights &= wKnights - 1;
@@ -554,6 +551,10 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
 
         for(int i = 0; i < pseudo.count; i++){
             makeMove(b, pseudo.moves[i]);
+            
+            char buffer[6];
+            moveToString(pseudo.moves[i], buffer);
+            printf("%s\n", buffer);
 
             if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), White)){
                 m->moves[m->count++] = pseudo.moves[i];
@@ -578,11 +579,19 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
             undoMove(b, pseudo.moves[i]);
         }
     }
+
+    printf("after Filter");
+
+    for(int i = 0; i < m->count; i++){
+        char buffer[6];
+        moveToString(m->moves[i], buffer);
+        printf("%s\n", buffer);
+    }
 }
 
-int perft(smol depth, Board* b){
+u64 perft(smol depth, Board* b){
     MoveList moves;
-    int total = 0;
+    u64 total = 0;
 
     if(depth <= 0){
         return 1;
@@ -597,8 +606,9 @@ int perft(smol depth, Board* b){
     return total;
 }
 
-int perftDevide(smol depth, Board* b){
+u64 perftDevide(smol depth, Board* b){
     MoveList moves;
+    u64 total = 0;
 
     if(depth <= 0){
         return 1;
@@ -608,12 +618,15 @@ int perftDevide(smol depth, Board* b){
     for(int i = 0; i < moves.count; i++){
         makeMove(b, moves.moves[i]);
 
+        u64 perf = perft(depth - 1, b);
+        total += perf;
+        
         char buffer[6];
         moveToString(moves.moves[i], buffer);
-        printf("%s %d\n", buffer, perft(depth - 1, b));
+        printf("%s %llu\n", buffer, perf);
         
         undoMove(b, moves.moves[i]);
     }
-    return -1;
+    return total;
 }
 #endif

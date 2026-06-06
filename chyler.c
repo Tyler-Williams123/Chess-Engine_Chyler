@@ -25,7 +25,8 @@ int main(){
     //    count++;
     // }
 
-    printf("%d", perftDevide(2, &board));
+    // printf("%d", perftDevide(2 ,&board));
 
+    generateMoves(&board, &moveList);
     return 0;
 }
