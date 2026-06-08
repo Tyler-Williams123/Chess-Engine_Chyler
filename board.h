@@ -5,7 +5,17 @@ typedef unsigned char smol;
 typedef unsigned long long u64;
 
 typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
-                       // 16-19 are captured piece and color, 20-23 for promotion piece and color, 24-31 for flags
+                       // 16-19 are captured piece and color, 20-23 for promotion piece and color
+                       //24-31 for flags : 24-en pessant, 25-castle 26-Double pawn push
+
+typedef struct{
+    u64 EnPessant;
+    smol castleRights; // bit 0-WSC 1-WLC 2-BSC 3-BLC
+} Undo;
+
+enum{WSC, WLC, BSC, BLC};
+
+enum {None, EnPessant = 1, Castling = 2, DoublePP = 4};
 
 enum {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -34,9 +44,13 @@ typedef struct{
     u64 pieces[13];
     u64 coloredPieces[2];
     u64 allPieces;
+    u64 enPessant;
 
     smol pieceArr[64];
     smol turn;
+
+    Undo History[256];
+    smol ply;
 } Board;
 
 void initBoard(Board* board){
@@ -131,12 +145,33 @@ void makeMove(Board* b, move m){
     smol from = m & 0x3f;
     smol to = (m >> 6) & 0x3f;
 
-    smol cPiece = b->pieceArr[to];
+    smol cPiece = (m >> 16) & 15;
+    smol pPiece = (m >> 20) & 15;
     
+    smol enPessant = (m >> 24) & 1;
+    smol castle = (m >> 25) & 1;
+    smol DPP = (m >> 26) & 1;
+
     b->pieceArr[to] = b->pieceArr[from];
     b->pieceArr[from] = Empty;
 
-    if(cPiece != Empty){
+    b->enPessant = 0;
+    if(DPP){
+        smol EPSQ = color ? to + 8 : to - 8;
+        b->enPessant = 1ULL << (EPSQ);
+    }
+
+    if(enPessant){
+        smol EPCaptureSQ = color ? to + 8 : to - 8;
+        
+        smol cColor = cPiece > 6 ? Black : White;
+        b->coloredPieces[cColor] &= ~(1ULL << EPCaptureSQ);
+        b->pieces[cPiece] &= ~(1ULL << EPCaptureSQ);
+        b->allPieces &= ~(1ULL << EPCaptureSQ);
+        
+        b->pieceArr[EPCaptureSQ] = Empty;   
+    }
+    else if(cPiece != Empty){
         smol cColor = cPiece > 6 ? Black : White;
         b->coloredPieces[cColor] &= ~(1ULL << to);
         b->pieces[cPiece] &= ~(1ULL << to);
@@ -147,6 +182,11 @@ void makeMove(Board* b, move m){
     b->pieces[piece] &= ~(1ULL << from);
     b->allPieces &= ~(1ULL << from);
     
+    if(pPiece){
+        piece = pPiece;
+        b->pieceArr[to] = pPiece;
+    }
+
     b->coloredPieces[color] |= (1ULL << to); // new location
     b->pieces[piece] |= (1ULL << to);
     b->allPieces |= 1ULL << to;
@@ -161,21 +201,42 @@ void undoMove(Board* b, move m){
     smol from = m & 0x3f;
     smol to = (m >> 6) & 0x3f;
 
-    smol cPiece = (m >> 16) & 15;
-    smol cColor = cPiece > 6 ? Black : White;
+    smol enPessant = (m >> 24) & 1;
+    smol castle = (m >> 25) & 1;
+    smol DPP = (m >> 26) & 1;
 
+    smol cPiece = (m >> 16) & 15;
+    smol pPiece = (m >> 20) & 15;
+    
     b->pieceArr[from] = b->pieceArr[to];
     b->pieceArr[to] = cPiece;
-
+    
     b->allPieces |= 1ULL << from;
     b->pieces[piece] |= 1ULL << from;
     b->coloredPieces[color] |= 1ULL << from;
-
+    
+    if(pPiece){
+        b->pieceArr[from] = piece;
+        piece = pPiece;
+    }
+    
     b->allPieces &= ~(1ULL << to);
     b->pieces[piece] &= ~(1ULL << to);
     b->coloredPieces[color] &= ~(1ULL << to);
     
-    if(cPiece != 0){
+    if(enPessant){
+        smol EPCaptureSQ = color ? to + 8 : to - 8;
+
+        b->pieceArr[to] = Empty;
+        b->pieceArr[EPCaptureSQ] = cPiece;
+
+        smol cColor = cPiece > 6 ? Black : White;
+        b->allPieces |= 1ULL << EPCaptureSQ;
+        b->pieces[cPiece] |= 1ULL << EPCaptureSQ;
+        b->coloredPieces[cColor] |= 1ULL << EPCaptureSQ;
+    }
+    else if(cPiece != Empty){
+        smol cColor = cPiece > 6 ? Black : White;
         b->allPieces |= 1ULL << to;
         b->pieces[cPiece] |= 1ULL << to;
         b->coloredPieces[cColor] |= 1ULL << to;

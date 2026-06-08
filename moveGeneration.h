@@ -2,7 +2,7 @@
 #define Move_Generation_H
 #include "board.h"
 
-#define Encode_Move(from, to, piece, capturedPiece) (from | (to << 6) | (piece << 12) | (capturedPiece << 16))
+#define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))
 
 typedef struct{
     move moves[256];
@@ -59,7 +59,7 @@ void generateWhiteKnightMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves);
             smol captured = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, WN, captured);
+            m->moves[m->count++] = Encode_Move(from, to, WN, captured, Empty, 0);
             moves &= moves - 1;
         }
         wKnights &= wKnights - 1;
@@ -79,7 +79,7 @@ void generateBlackKnightMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol captured = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, BN, captured);
+            m->moves[m->count++] = Encode_Move(from, to, BN, captured, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -113,10 +113,10 @@ void generateWhiteKingMoves(Board* b, MoveList* m){
    u64 moves = kingTargets(from) & ~b->coloredPieces[White];
 
     while(moves){
-        smol to = moves & -moves;
+        smol to = __builtin_ctzll(moves);
         smol captured = b->pieceArr[to];
 
-        m->moves[m->count++] = Encode_Move(from, to, WK, captured);
+        m->moves[m->count++] = Encode_Move(from, to, WK, captured, Empty, 0);
 
         moves &= moves - 1;
     }
@@ -132,7 +132,7 @@ void generateBlackKingMoves(Board* b, MoveList* m){
         smol to = __builtin_ctzll(moves & -moves);
         smol captured = b->pieceArr[to];
 
-        m->moves[m->count++] = Encode_Move(from, to, BK, captured);
+        m->moves[m->count++] = Encode_Move(from, to, BK, captured, Empty, 0);
 
         moves &= moves - 1;
     }
@@ -188,65 +188,91 @@ void generateWhitePawnMoves(Board* b, MoveList* m){
     u64 pawns = b->pieces[WP];
 
     while(pawns){
-        smol from = __builtin_ctzll(pawns & -pawns);
+        smol from = __builtin_ctzll(pawns);
         u64 moves = 0;
-        u64 caps = 0;
+        u64 dPush = 0;
 
+        u64 attacks = pawnAttacks(from, White);
+        
         moves |= pawnSingleMoves(from, White) & empty;
-        moves |= pawnDoubleMoves(from, White) & empty & (empty << 8);
-        caps |= pawnAttacks(from, White) & b->coloredPieces[Black];
+        moves |= attacks & b->coloredPieces[Black];
+        moves |= attacks & b->enPessant;
+        dPush |= pawnDoubleMoves(from, White) & empty & (empty << 8);
 
         while(moves){
-            smol to = __builtin_ctzll(moves & -moves);
+            smol to = __builtin_ctzll(moves);
+            smol capture = b->pieceArr[to];
+            smol flag = None;
             
-            m->moves[m->count++] = Encode_Move(from, to, WP, Empty);
+            if((1ULL << to) & b->enPessant){
+                flag = EnPessant;
+                capture = b->pieceArr[to - 8];
+            }
+
+            if(to / 8 == 7){
+                for(int i = WR; i < WK; i++){
+                    m->moves[m->count++] = Encode_Move(from, to, WP, capture, i, flag);
+                }
+            }
+            else{
+                m->moves[m->count++] = Encode_Move(from, to, WP, capture, Empty, flag);
+            }
 
             moves &= moves - 1;
         }
-
-        while(caps){
-            smol to = __builtin_ctzll(caps & -caps);
-            smol capture = b->pieceArr[to];
-
-            m->moves[m->count++] = Encode_Move(from, to, WP, capture);
-
-            caps &= caps - 1;
+        while(dPush){
+            smol to = __builtin_ctzll(dPush);
+            
+            m->moves[m->count++] = Encode_Move(from, to, WP, Empty, Empty, DoublePP);
+            dPush &= dPush - 1;
         }
-
         pawns &= pawns - 1;
     }
 }
 
-void generateBlackPawnMoves(Board* b, MoveList* m){
+void generateBlackPawnMoves(Board* b, MoveList* m){ 
     u64 empty = ~b->allPieces;
     u64 pawns = b->pieces[BP];
 
     while(pawns){
-        smol from = __builtin_ctzll(pawns & -pawns);
+        smol from = __builtin_ctzll(pawns);
         u64 moves = 0;
-        u64 caps = 0;
+        u64 dPush = 0;
+
+        u64 attacks = pawnAttacks(from, Black);
 
         moves |= pawnSingleMoves(from, Black) & empty;
-        moves |= pawnDoubleMoves(from, Black) & empty & (empty >> 8);
-        caps |= pawnAttacks(from, Black) & b->coloredPieces[White];
+        moves |= attacks & b->coloredPieces[White];
+        moves |= attacks & b->enPessant;
+        dPush |= pawnDoubleMoves(from, Black) & empty & (empty >> 8);
 
         while(moves){
-            smol to = __builtin_ctzll(moves & -moves);
+            smol to = __builtin_ctzll(moves);
+            smol capture = b->pieceArr[to];
+            smol flag = None;
             
-            m->moves[m->count++] = Encode_Move(from, to, BP, Empty);
-
+            if((1ULL << to) & b->enPessant){
+                flag = EnPessant;
+                capture = b->pieceArr[to + 8];
+            }
+            
+            if(to / 8 == 0){
+                for(int i = BR; i < BK; i++){
+                    m->moves[m->count++] = Encode_Move(from, to, BP, capture, i, flag);
+                }
+            }
+            else{
+                m->moves[m->count++] = Encode_Move(from, to, BP, capture, Empty, flag);
+            }
+            
             moves &= moves - 1;
         }
-
-        while(caps){
-            smol to = __builtin_ctzll(caps & -caps);
-            smol capture = b->pieceArr[to];
-
-            m->moves[m->count++] = Encode_Move(from, to, BP, capture);
-
-            caps &= caps - 1;
+        while(dPush){
+            smol to = __builtin_ctzll(dPush);
+            
+            m->moves[m->count++] = Encode_Move(from, to, BP, Empty, Empty, DoublePP);
+            dPush &= dPush - 1;
         }
-
         pawns &= pawns - 1;
     }
 }
@@ -320,7 +346,7 @@ void generateWhiteRookMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, WR, capture);
+            m->moves[m->count++] = Encode_Move(from, to, WR, capture, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -338,7 +364,7 @@ void generateBlackRookMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, BR, capture);
+            m->moves[m->count++] = Encode_Move(from, to, BR, capture, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -433,7 +459,7 @@ void generateWhiteBishopMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, WB, capture);
+            m->moves[m->count++] = Encode_Move(from, to, WB, capture, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -451,7 +477,7 @@ void generateBlackBishopMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, BB, capture);
+            m->moves[m->count++] = Encode_Move(from, to, BB, capture, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -475,7 +501,7 @@ void generateWhiteQueenMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, WQ, capture);
+            m->moves[m->count++] = Encode_Move(from, to, WQ, capture, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -493,7 +519,7 @@ void generateBlackQueenMoves(Board* b, MoveList* m){
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
-            m->moves[m->count++] = Encode_Move(from, to, BQ, capture);
+            m->moves[m->count++] = Encode_Move(from, to, BQ, capture, Empty, 0);
 
             moves &= moves - 1;
         }
@@ -541,7 +567,7 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
     pseudo.count = 0;
 
     m->count = 0;
-    if(b->turn % 2 == White){
+    if(b->ply % 2 == White){
         generateWhitePawnMoves(b, &pseudo);
         generateWhiteKingMoves(b, &pseudo);
         generateWhiteKnightMoves(b, &pseudo);
