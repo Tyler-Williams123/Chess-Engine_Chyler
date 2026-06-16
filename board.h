@@ -15,7 +15,7 @@ typedef struct{
 
 enum{WSC, WLC, BSC, BLC};
 
-enum {None, EnPessant = 1, Castling = 2, DoublePP = 4};
+enum {None, EnPessant = 1, Castle = 2, DoublePP = 4};
 
 enum {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -44,17 +44,21 @@ typedef struct{
     u64 pieces[13];
     u64 coloredPieces[2];
     u64 allPieces;
+
     u64 enPessant;
+    smol castleRights; // bit 0-WSC 1-WLC 2-BSC 3-BLC
 
     smol pieceArr[64];
     smol turn;
 
-    Undo History[256];
+    Undo history[256];
     smol ply;
 } Board;
 
 void initBoard(Board* board){
     board->turn = 0;
+    board->enPessant = 0;
+    board->castleRights = 0xf;
 
     board->pieces[WP] = 0x000000000000ff00;
     board->pieces[WR] = 0x0000000000000081;
@@ -139,6 +143,11 @@ void printBoard(Board* board){
 }
 
 void makeMove(Board* b, move m){
+    Undo state;
+    state.EnPessant = b->enPessant;
+    state.castleRights = b->castleRights;
+    b->history[b->ply] = state;
+
     smol piece = (m >> 12) & 15;
     smol color = piece > 6 ? Black : White;
     
@@ -200,11 +209,11 @@ void undoMove(Board* b, move m){
     
     smol from = m & 0x3f;
     smol to = (m >> 6) & 0x3f;
-
+    
     smol enPessant = (m >> 24) & 1;
     smol castle = (m >> 25) & 1;
     smol DPP = (m >> 26) & 1;
-
+    
     smol cPiece = (m >> 16) & 15;
     smol pPiece = (m >> 20) & 15;
     
@@ -226,10 +235,10 @@ void undoMove(Board* b, move m){
     
     if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
-
+        
         b->pieceArr[to] = Empty;
         b->pieceArr[EPCaptureSQ] = cPiece;
-
+        
         smol cColor = cPiece > 6 ? Black : White;
         b->allPieces |= 1ULL << EPCaptureSQ;
         b->pieces[cPiece] |= 1ULL << EPCaptureSQ;
@@ -242,6 +251,9 @@ void undoMove(Board* b, move m){
         b->coloredPieces[cColor] |= 1ULL << to;
     }
 
+    b->castleRights = b->history[b->ply].castleRights;
+    b->enPessant = b->history[b->ply].EnPessant;
+    
     b->turn--;
 }
 

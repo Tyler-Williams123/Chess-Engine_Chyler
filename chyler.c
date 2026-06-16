@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <windows.h>
+#include <time.h>
 #include "board.h"
 #include "moveGeneration.h"
 
@@ -12,6 +13,7 @@ int main(){
     initBoard(&board);
     
     smol count = 0;
+    srand(time(NULL));
     printBoard(&board);
     
     while(count < 100){
@@ -19,7 +21,8 @@ int main(){
         printf("\n\n");
         
         generateMoves(&board, &moveList);
-        makeMove(&board, moveList.moves[0]);
+        smol random = rand() % moveList.count;
+        makeMove(&board, moveList.moves[random]);
 
         printBoard(&board);
         count++;

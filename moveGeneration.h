@@ -530,6 +530,44 @@ void generateBlackQueenMoves(Board* b, MoveList* m){
 
 // queens
 
+void generateWhiteCastle(Board* b, MoveList* m){
+    u64 allPieces = b->allPieces;
+    if(b->castleRights & 1){
+        if((allPieces & (1ULL << F1)) | (allPieces & (1ULL << G1))) return;
+
+        if(!(squareAttacked(b, E1, White) || squareAttacked(b, F1, White) || squareAttacked(b, G1, White))){
+            m->moves[m->count++] = Encode_Move(E1, G1, WK, None, None, Castle);
+        }
+    }
+    if(b->castleRights & 2){
+        if((allPieces & (1ULL << D1)) | (allPieces & (1ULL << C1)) | (allPieces & (1ULL << B1))) return;
+
+        if(!(squareAttacked(b, E1, White) || squareAttacked(b, D1, White) || squareAttacked(b, C1, White))){
+            m->moves[m->count++] = Encode_Move(E1, C1, WK, None, None, Castle);
+        }
+    }
+}
+
+void generateBlackCastle(Board* b, MoveList* m){
+    u64 allPieces = b->allPieces;
+    if(b->castleRights & 4){
+        if((allPieces & (1ULL << F8)) | (allPieces & (1ULL << G8))) return;
+
+        if(!(squareAttacked(b, E8, Black) || squareAttacked(b, F8, Black) || squareAttacked(b, G8, Black))){
+            m->moves[m->count++] = Encode_Move(E8, G8, BK, None, None, Castle);
+        }
+    }
+    if(b->castleRights & 8){
+        if((allPieces & (1ULL << D8)) | (allPieces & (1ULL << C8)) | (allPieces & (1ULL << B8))) return;
+
+        if(!(squareAttacked(b, E8, Black) || squareAttacked(b, D8, Black) || squareAttacked(b, C8, Black))){
+            m->moves[m->count++] = Encode_Move(E8, C8, BK, None, None, Castle);
+        }
+    }
+}
+
+// castling
+
 smol squareAttacked(Board* b, smol sq, smol color){ // color is king color
     if(color){
         if(pawnAttacks(sq, Black) & b->pieces[WP])
@@ -567,21 +605,24 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
     pseudo.count = 0;
 
     m->count = 0;
-    if(b->ply % 2 == White){
+    if(b->turn % 2 == White){
         generateWhitePawnMoves(b, &pseudo);
         generateWhiteKingMoves(b, &pseudo);
         generateWhiteKnightMoves(b, &pseudo);
         generateWhiteRookMoves(b, &pseudo);
         generateWhiteBishopMoves(b, &pseudo);
         generateWhiteQueenMoves(b, &pseudo);
-
+        generateWhiteCastle(b, &pseudo);
+        
         for(int i = 0; i < pseudo.count; i++){
+            b->ply++;
             makeMove(b, pseudo.moves[i]);
             
             if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), White)){
                 m->moves[m->count++] = pseudo.moves[i];
             }
             undoMove(b, pseudo.moves[i]);
+            b->ply--;
         }
     }
     else{
@@ -591,14 +632,17 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
         generateBlackRookMoves(b, &pseudo);
         generateBlackBishopMoves(b, &pseudo);
         generateBlackQueenMoves(b, &pseudo);
-
+        generateBlackCastle(b, &pseudo);
+        
         for(int i = 0; i < pseudo.count; i++){
+            b->ply++;
             makeMove(b, pseudo.moves[i]);
-
+            
             if(!squareAttacked(b, __builtin_ctzll(b->pieces[BK]), Black)){
                 m->moves[m->count++] = pseudo.moves[i];
             }
             undoMove(b, pseudo.moves[i]);
+            b->ply--;
         }
     }
 }
@@ -613,9 +657,11 @@ u64 perft(smol depth, Board* b){
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
+        b->ply++;
         makeMove(b, moves.moves[i]);
         total += perft(depth - 1, b);
         undoMove(b, moves.moves[i]);
+        b->ply--;
     }
     return total;
 }
@@ -630,6 +676,7 @@ u64 perftDevide(smol depth, Board* b){
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
+        b->ply++;
         makeMove(b, moves.moves[i]);
 
         u64 perf = perft(depth - 1, b);
@@ -640,6 +687,7 @@ u64 perftDevide(smol depth, Board* b){
         printf("%s %llu\n", buffer, perf);
         
         undoMove(b, moves.moves[i]);
+        b->ply--;
     }
     return total;
 }
