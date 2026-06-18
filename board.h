@@ -165,12 +165,46 @@ void makeMove(Board* b, move m){
     b->pieceArr[from] = Empty;
 
     b->enPessant = 0;
+    if(piece == WR || piece == BR){
+        switch(from){
+            case(A1): b->castleRights &= 0b1101; break;
+            case(H1): b->castleRights &= 0b1110; break;
+            case(A8): b->castleRights &= 0b0111; break;
+            case(H8): b->castleRights &= 0b1011; break;
+        }
+    }
+    switch(piece){
+        case(WK): b->castleRights &= 0b1100; break;
+        case(BK): b->castleRights &= 0b0011; break;
+    }
+    
     if(DPP){
         smol EPSQ = color ? to + 8 : to - 8;
         b->enPessant = 1ULL << (EPSQ);
     }
+    else if(castle){
+        smol rook;
+        smol rFrom;
+        smol rTo;
+        switch(to){
+            case(C1): rook = WR; rFrom = A1; rTo = D1; break;
+            case(G1): rook = WR; rFrom = H1; rTo = F1; break;
+            case(C8): rook = BR; rFrom = A8; rTo = D8; break;
+            case(G8): rook = BR; rFrom = H8; rTo = F8; break;
+        }
+        
+        b->pieceArr[rTo] = b->pieceArr[rFrom];
+        b->pieceArr[rFrom] = Empty;
 
-    if(enPessant){
+        b->coloredPieces[color] &= ~(1ULL << rFrom); // old location
+        b->pieces[rook] &= ~(1ULL << rFrom);
+        b->allPieces &= ~(1ULL << rFrom);
+
+        b->coloredPieces[color] |= (1ULL << rTo); // new location
+        b->pieces[rook] |= (1ULL << rTo);
+        b->allPieces |= 1ULL << rTo;
+    }
+    else if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
         
         smol cColor = cPiece > 6 ? Black : White;
@@ -185,6 +219,13 @@ void makeMove(Board* b, move m){
         b->coloredPieces[cColor] &= ~(1ULL << to);
         b->pieces[cPiece] &= ~(1ULL << to);
         b->allPieces &= ~(1ULL << to);
+        
+        switch(to){
+            case(A1): b->castleRights &= 0b1101; break;
+            case(H1): b->castleRights &= 0b1110; break;
+            case(A8): b->castleRights &= 0b0111; break;
+            case(H8): b->castleRights &= 0b1011; break;
+        }
     }
 
     b->coloredPieces[color] &= ~(1ULL << from); // old location
@@ -232,8 +273,29 @@ void undoMove(Board* b, move m){
     b->allPieces &= ~(1ULL << to);
     b->pieces[piece] &= ~(1ULL << to);
     b->coloredPieces[color] &= ~(1ULL << to);
-    
-    if(enPessant){
+    if(castle){
+        smol rook;
+        smol rFrom;
+        smol rTo;
+        switch(to){
+            case(C1): rook = WR; rFrom = A1; rTo = D1; break;
+            case(G1): rook = WR; rFrom = H1; rTo = F1; break;
+            case(C8): rook = BR; rFrom = A8; rTo = D8; break;
+            case(G8): rook = BR; rFrom = H8; rTo = F8; break;
+        }
+        
+        b->pieceArr[rFrom] = b->pieceArr[rTo];
+        b->pieceArr[rTo] = Empty;
+
+        b->coloredPieces[color] &= ~(1ULL << rTo); // new location
+        b->pieces[rook] &= ~(1ULL << rTo);
+        b->allPieces &= ~(1ULL << rTo);
+
+        b->coloredPieces[color] |= (1ULL << rFrom); // old location
+        b->pieces[rook] |= (1ULL << rFrom);
+        b->allPieces |= 1ULL << rFrom;
+    }
+    else if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
         
         b->pieceArr[to] = Empty;

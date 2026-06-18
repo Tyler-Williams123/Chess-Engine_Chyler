@@ -691,4 +691,5 @@ u64 perftDevide(smol depth, Board* b){
     }
     return total;
 }
+
 #endif
