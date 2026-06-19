@@ -530,6 +530,40 @@ void generateBlackQueenMoves(Board* b, MoveList* m){
 
 // queens
 
+smol squareAttacked(Board* b, smol sq, smol color){ // color is king color
+    if(color){
+        if(pawnAttacks(sq, Black) & b->pieces[WP])
+            return 1;
+        if(knightTargets(sq) & b->pieces[WN])
+            return 1;
+        if(rookTargets(b, sq) & b->pieces[WR])
+            return 1;
+        if(bishopTargets(b, sq) & b->pieces[WB])
+            return 1;
+        if(queenTargets(b, sq) & b->pieces[WQ])
+            return 1;
+        if(kingTargets(sq) & b->pieces[WK])
+            return 1;
+    }
+    else{
+        if(pawnAttacks(sq, White) & b->pieces[BP])
+            return 1;
+        if(knightTargets(sq) & b->pieces[BN])
+            return 1;
+        if(rookTargets(b, sq) & b->pieces[BR])
+            return 1;
+        if(bishopTargets(b, sq) & b->pieces[BB])
+            return 1;
+        if(queenTargets(b, sq) & b->pieces[BQ])
+            return 1;
+        if(kingTargets(sq) & b->pieces[BK])
+            return 1;
+    }
+    return 0;
+}
+
+// castling
+
 void generateWhiteCastle(Board* b, MoveList* m){
     u64 allPieces = b->allPieces;
     if(b->castleRights & 1){
@@ -564,40 +598,6 @@ void generateBlackCastle(Board* b, MoveList* m){
             m->moves[m->count++] = Encode_Move(E8, C8, BK, None, None, Castle);
         }
     }
-}
-
-// castling
-
-smol squareAttacked(Board* b, smol sq, smol color){ // color is king color
-    if(color){
-        if(pawnAttacks(sq, Black) & b->pieces[WP])
-            return 1;
-        if(knightTargets(sq) & b->pieces[WN])
-            return 1;
-        if(rookTargets(b, sq) & b->pieces[WR])
-            return 1;
-        if(bishopTargets(b, sq) & b->pieces[WB])
-            return 1;
-        if(queenTargets(b, sq) & b->pieces[WQ])
-            return 1;
-        if(kingTargets(sq) & b->pieces[WK])
-            return 1;
-    }
-    else{
-        if(pawnAttacks(sq, White) & b->pieces[BP])
-            return 1;
-        if(knightTargets(sq) & b->pieces[BN])
-            return 1;
-        if(rookTargets(b, sq) & b->pieces[BR])
-            return 1;
-        if(bishopTargets(b, sq) & b->pieces[BB])
-            return 1;
-        if(queenTargets(b, sq) & b->pieces[BQ])
-            return 1;
-        if(kingTargets(sq) & b->pieces[BK])
-            return 1;
-    }
-    return 0;
 }
 
 void generateMoves(Board* b, MoveList* m){ // generates legal moves only

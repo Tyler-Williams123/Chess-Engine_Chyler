@@ -12,24 +12,24 @@ MoveList moveList;
 int main(){
     initBoard(&board);
     
-    smol count = 0;
-    srand(time(NULL));
-    printBoard(&board);
+    // smol count = 0;
+    // srand(time(NULL));
+    // printBoard(&board);
     
-    while(count < 100){
-        Sleep(500);
-        printf("\n\n");
+    // while(count < 100){
+    //     Sleep(500);
+    //     printf("\n\n");
         
-        generateMoves(&board, &moveList);
-        smol random = rand() % moveList.count;
-        makeMove(&board, moveList.moves[random]);
+    //     generateMoves(&board, &moveList);
+    //     smol random = rand() % moveList.count;
+    //     makeMove(&board, moveList.moves[random]);
 
-        printBoard(&board);
-        count++;
-    }
+    //     printBoard(&board);
+    //     count++;
+    // }
 
     // makeMove(&board, Encode_Move(G1, F3, WN, Empty, Empty, 0));
-    // printf("%d", perft(3 ,&board));
+    printf("%llu", perft(7 ,&board));
     // printf("knightTargets(BlackKing) & whiteKnights = %llx\n", knightTargets(__builtin_ctzll(board.pieces[BK])) & board.pieces[WN]);
     // printf("BN: %llx WN: %llx\n", board.pieces[BN], board.pieces[WN]);
     // printf("%d\n", squareAttacked(&board, __builtin_ctzll(board.pieces[BK]), Black));

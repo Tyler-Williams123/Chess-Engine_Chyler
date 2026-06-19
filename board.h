@@ -55,6 +55,34 @@ typedef struct{
     smol ply;
 } Board;
 
+void FENInit(Board* board, char* FEN){
+    char* pieces;
+    char* turn;
+    char* castling;
+    char* enPessant;
+    smol count = 0;;
+
+    smol field = 0;
+    
+    int i = 0;
+    while(FEN[i] != '\0'){
+        if(FEN[i] == " "){
+            i++;
+            field++;
+            count = 0;
+            continue;
+        }
+        switch(field){
+            case(0): pieces[count++] = FEN[i]; break;
+            case(1): turn[count++] = FEN[i]; break;
+            case(2): castling[count++] = FEN[i]; break;
+            case(3): enPessant[count++] = FEN[i]; break;
+        }
+        i++;
+    }
+
+}
+
 void initBoard(Board* board){
     board->turn = 0;
     board->enPessant = 0;
