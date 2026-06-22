@@ -210,7 +210,7 @@ void generateWhitePawnMoves(Board* b, MoveList* m){
             }
 
             if(to / 8 == 7){
-                for(int i = WR; i < WK; i++){
+                for(int i = WN; i < WK; i++){
                     m->moves[m->count++] = Encode_Move(from, to, WP, capture, i, flag);
                 }
             }
@@ -257,7 +257,7 @@ void generateBlackPawnMoves(Board* b, MoveList* m){
             }
             
             if(to / 8 == 0){
-                for(int i = BR; i < BK; i++){
+                for(int i = BN; i < BK; i++){
                     m->moves[m->count++] = Encode_Move(from, to, BP, capture, i, flag);
                 }
             }

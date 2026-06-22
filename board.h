@@ -28,17 +28,9 @@ enum {
     A8, B8, C8, D8, E8, F8, G8, H8,
 };
 
-enum {
-    White, Black
-};
+enum {White, Black};
 
-enum {
-    Pawn, Rook, Knight, Bishop, King, Queen
-};
-
-enum {
-    Empty, WP, WR, WN, WB, WK, WQ, BP, BR, BN, BB, BK, BQ
-};
+enum {Empty, WP, WN, WB, WR, WQ, WK, BP, BN, BB, BR, BQ, BK};
 
 typedef struct{
     u64 pieces[13];
@@ -56,18 +48,24 @@ typedef struct{
 } Board;
 
 void FENInit(Board* board, char* FEN){
-    char* pieces;
-    char* turn;
-    char* castling;
-    char* enPessant;
+    char* pieces[128];
+    char* turn[2];
+    char* castling[8];
+    char* enPessant[4];
     smol count = 0;;
 
     smol field = 0;
     
-    int i = 0;
+    smol i = 0; // split string
     while(FEN[i] != '\0'){
-        if(FEN[i] == " "){
+        if(FEN[i] == ' '){
             i++;
+            switch(field){
+                case(0): pieces[count] = '\0'; break;
+                case(1): castling[count] = '\0'; break;
+                case(2): enPessant[count] = '\0'; break;
+            }
+
             field++;
             count = 0;
             continue;
@@ -80,7 +78,69 @@ void FENInit(Board* board, char* FEN){
         }
         i++;
     }
+    turn[1] = '\0';
+    
+    board->turn = turn[0] == 'w' ? White : Black; // turn
+    
+    i = 0;
+    while(castling[i] != '\0'){ // castling
+        switch(castling[i]){
+            case('K'): board->castleRights |= 1ULL; break;
+            case('Q'): board->castleRights |= (1ULL << 1); break;
+            case('k'): board->castleRights |= (1ULL << 2); break;
+            case('q'): board->castleRights |= (1ULL << 3); break;
+        }
+        i++;
+    }
+    
+    i = 0;
+    smol rank = 0; // En Pessant
+    smol file = 0;
+    if(enPessant[0] != '-'){
+        rank = enPessant[0] - 'a';
+        file = (enPessant[1] - '1') * 8;
+    }
+    board->enPessant = 1ULL << (rank + file);
 
+    i = 0; // pieces
+    count = 0;
+    while(pieces[i] != '\0'){
+        char c = pieces[i];
+        switch(c){
+            case('/'): break;
+            case('p'): board->pieceArr[count++] = BP; break;
+            case('n'): board->pieceArr[count++] = BN; break;
+            case('b'): board->pieceArr[count++] = BB; break;
+            case('r'): board->pieceArr[count++] = BR; break;
+            case('q'): board->pieceArr[count++] = BQ; break;
+            case('k'): board->pieceArr[count++] = BK; break;
+
+            case('P'): board->pieceArr[count++] = WP; break;
+            case('N'): board->pieceArr[count++] = WN; break;
+            case('B'): board->pieceArr[count++] = WB; break;
+            case('R'): board->pieceArr[count++] = WR; break;
+            case('Q'): board->pieceArr[count++] = WQ; break;
+            case('K'): board->pieceArr[count++] = WK; break;
+
+            default:
+                smol space = c - '0';
+                for(int j = 0; j < space; j++){
+                    board->pieceArr[count++] = Empty;
+                }
+        }
+        i++;
+    }
+    for(int j = 0; j < 64; j++){
+        if(board->pieceArr[j] == Empty) continue;
+        board->pieces[board->pieceArr[j]] = board->pieces[board->pieceArr[j]] | (1ULL << j);
+    }
+    for(int j = WP; j <= WK; j++){
+        board->coloredPieces[White] |= board->pieces[j];
+    }
+    for(int j = BP; j <= BK; j++){
+        board->coloredPieces[Black] |= board->pieces[j];
+    }
+    board->allPieces = board->coloredPieces[White] | board->coloredPieces[Black];
 }
 
 void initBoard(Board* board){
