@@ -48,10 +48,10 @@ typedef struct{
 } Board;
 
 void FENInit(Board* board, char* FEN){
-    char* pieces[128];
-    char* turn[2];
-    char* castling[8];
-    char* enPessant[4];
+    char pieces[128];
+    char turn[2];
+    char castling[8];
+    char enPessant[4];
     smol count = 0;;
 
     smol field = 0;
@@ -62,10 +62,9 @@ void FENInit(Board* board, char* FEN){
             i++;
             switch(field){
                 case(0): pieces[count] = '\0'; break;
-                case(1): castling[count] = '\0'; break;
-                case(2): enPessant[count] = '\0'; break;
+                case(2): castling[count] = '\0'; break;
             }
-
+            
             field++;
             count = 0;
             continue;
@@ -78,6 +77,7 @@ void FENInit(Board* board, char* FEN){
         }
         i++;
     }
+    enPessant[count] = '\0';
     turn[1] = '\0';
     
     board->turn = turn[0] == 'w' ? White : Black; // turn
@@ -96,18 +96,19 @@ void FENInit(Board* board, char* FEN){
     i = 0;
     smol rank = 0; // En Pessant
     smol file = 0;
+    board->enPessant = 0;
     if(enPessant[0] != '-'){
         rank = enPessant[0] - 'a';
         file = (enPessant[1] - '1') * 8;
+        board->enPessant = 1ULL << (rank + file);
     }
-    board->enPessant = 1ULL << (rank + file);
 
     i = 0; // pieces
-    count = 0;
+    count = A8;
     while(pieces[i] != '\0'){
         char c = pieces[i];
         switch(c){
-            case('/'): break;
+            case('/'): count -= 16; break;
             case('p'): board->pieceArr[count++] = BP; break;
             case('n'): board->pieceArr[count++] = BN; break;
             case('b'): board->pieceArr[count++] = BB; break;
@@ -126,12 +127,11 @@ void FENInit(Board* board, char* FEN){
                 smol space = c - '0';
                 for(int j = 0; j < space; j++){
                     board->pieceArr[count++] = Empty;
-                }
+                } break;
         }
         i++;
     }
-    for(int j = 0; j < 64; j++){
-        if(board->pieceArr[j] == Empty) continue;
+    for(int j = A1; j <= H8; j++){
         board->pieces[board->pieceArr[j]] = board->pieces[board->pieceArr[j]] | (1ULL << j);
     }
     for(int j = WP; j <= WK; j++){
@@ -228,6 +228,37 @@ void printBoard(Board* board){
         }
         printf("\n");
     }
+}
+
+void verifyBoard(Board* board){
+    u64 pieces[13] = {0};
+    u64 white = 0;
+    u64 black = 0;
+    u64 all = 0;
+
+    for(int j = 0; j < 64; j++){
+        if(board->pieceArr[j] == Empty) continue;
+        pieces[board->pieceArr[j]] = pieces[board->pieceArr[j]] | (1ULL << j);
+    }
+    for(int j = WP; j <= WK; j++){
+        white |= pieces[j];
+    }
+    for(int j = BP; j <= BK; j++){
+        black |= pieces[j];
+    }
+    all = white | black;
+
+    for(int i = WP; i <= BK; i++){
+        if(board->pieces[i] != pieces[i]){
+            printf("Mismatch in piece bitboard: %d \n", i);
+        }
+    }
+    if(white != board->coloredPieces[White])
+        printf("Mismatch in white pieces bitboard \n");
+    if(black != board->coloredPieces[Black])
+        printf("Mismatch in black pieces bitboard \n");
+    if(all != board->allPieces)
+        printf("Mismatch in all pieces bitboard \n");
 }
 
 void makeMove(Board* b, move m){

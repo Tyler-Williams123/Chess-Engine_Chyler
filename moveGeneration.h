@@ -567,17 +567,17 @@ smol squareAttacked(Board* b, smol sq, smol color){ // color is king color
 void generateWhiteCastle(Board* b, MoveList* m){
     u64 allPieces = b->allPieces;
     if(b->castleRights & 1){
-        if((allPieces & (1ULL << F1)) | (allPieces & (1ULL << G1))) return;
-
-        if(!(squareAttacked(b, E1, White) || squareAttacked(b, F1, White) || squareAttacked(b, G1, White))){
-            m->moves[m->count++] = Encode_Move(E1, G1, WK, None, None, Castle);
+        if(!((allPieces & (1ULL << F1)) | (allPieces & (1ULL << G1)))){
+            if(!(squareAttacked(b, E1, White) || squareAttacked(b, F1, White) || squareAttacked(b, G1, White))){
+                m->moves[m->count++] = Encode_Move(E1, G1, WK, None, None, Castle);
+            }
         }
     }
     if(b->castleRights & 2){
-        if((allPieces & (1ULL << D1)) | (allPieces & (1ULL << C1)) | (allPieces & (1ULL << B1))) return;
-
-        if(!(squareAttacked(b, E1, White) || squareAttacked(b, D1, White) || squareAttacked(b, C1, White))){
-            m->moves[m->count++] = Encode_Move(E1, C1, WK, None, None, Castle);
+        if(!((allPieces & (1ULL << D1)) | (allPieces & (1ULL << C1)) | (allPieces & (1ULL << B1)))){
+            if(!(squareAttacked(b, E1, White) || squareAttacked(b, D1, White) || squareAttacked(b, C1, White))){
+                m->moves[m->count++] = Encode_Move(E1, C1, WK, None, None, Castle);
+            }
         }
     }
 }
@@ -585,17 +585,17 @@ void generateWhiteCastle(Board* b, MoveList* m){
 void generateBlackCastle(Board* b, MoveList* m){
     u64 allPieces = b->allPieces;
     if(b->castleRights & 4){
-        if((allPieces & (1ULL << F8)) | (allPieces & (1ULL << G8))) return;
-
-        if(!(squareAttacked(b, E8, Black) || squareAttacked(b, F8, Black) || squareAttacked(b, G8, Black))){
-            m->moves[m->count++] = Encode_Move(E8, G8, BK, None, None, Castle);
+        if(!((allPieces & (1ULL << F8)) | (allPieces & (1ULL << G8)))){
+            if(!(squareAttacked(b, E8, Black) || squareAttacked(b, F8, Black) || squareAttacked(b, G8, Black))){
+                m->moves[m->count++] = Encode_Move(E8, G8, BK, None, None, Castle);
+            }
         }
     }
     if(b->castleRights & 8){
-        if((allPieces & (1ULL << D8)) | (allPieces & (1ULL << C8)) | (allPieces & (1ULL << B8))) return;
-
-        if(!(squareAttacked(b, E8, Black) || squareAttacked(b, D8, Black) || squareAttacked(b, C8, Black))){
-            m->moves[m->count++] = Encode_Move(E8, C8, BK, None, None, Castle);
+        if(!((allPieces & (1ULL << D8)) | (allPieces & (1ULL << C8)) | (allPieces & (1ULL << B8)))){
+            if(!(squareAttacked(b, E8, Black) || squareAttacked(b, D8, Black) || squareAttacked(b, C8, Black))){
+                m->moves[m->count++] = Encode_Move(E8, C8, BK, None, None, Castle);
+            }
         }
     }
 }

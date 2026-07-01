@@ -10,8 +10,8 @@ Board board;
 MoveList moveList;
 
 int main(){
-    initBoard(&board);
-    
+    FENInit(&board, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    // initBoard(&board);
     // smol count = 0;
     // srand(time(NULL));
     // printBoard(&board);
@@ -29,11 +29,16 @@ int main(){
     // }
 
     // makeMove(&board, Encode_Move(G1, F3, WN, Empty, Empty, 0));
-    printf("%llu", perft(7 ,&board));
-    // printf("knightTargets(BlackKing) & whiteKnights = %llx\n", knightTargets(__builtin_ctzll(board.pieces[BK])) & board.pieces[WN]);
-    // printf("BN: %llx WN: %llx\n", board.pieces[BN], board.pieces[WN]);
-    // printf("%d\n", squareAttacked(&board, __builtin_ctzll(board.pieces[BK]), Black));
+    printf("PERFT: %llu\n", perftDevide(3 ,&board));
+    // printf("PERFT: %llu\n", perft(4 ,&board));
+    
+    // makeMove(&board, Encode_Move(A8, B8, BR, Empty, Empty, None));
+    // generateMoves(&board, &moveList);
+    // for(int i = 0; i < moveList.count; i++){
+    //     if(moveList.moves[i] & (1ULL << 25)){
+    //         printf("yeet");
+    //     } 
+    // }
 
-    //generateMoves(&board, &moveList);
     return 0;
 }
