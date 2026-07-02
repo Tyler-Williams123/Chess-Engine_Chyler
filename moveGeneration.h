@@ -1,6 +1,7 @@
 #ifndef Move_Generation_H
 #define Move_Generation_H
 #include "board.h"
+#include <assert.h>
 
 #define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))
 
@@ -679,6 +680,17 @@ u64 perftDevide(smol depth, Board* b){
         b->ply++;
         makeMove(b, moves.moves[i]);
 
+        // debugging
+        smol verify = verifyBoard(b);
+        if(!verify){
+            char debugMove[6];
+            moveToString(moves.moves[i], debugMove);
+            printf("broke at ply: %d by move: %s", b->ply, debugMove, moves.moves[i]);
+            printMove(moves.moves[i]);
+        }
+        assert(verify);
+        //debugging
+        
         u64 perf = perft(depth - 1, b);
         total += perf;
         
@@ -688,6 +700,16 @@ u64 perftDevide(smol depth, Board* b){
         
         undoMove(b, moves.moves[i]);
         b->ply--;
+
+        // debugging
+        verify = verifyBoard(b);
+        if(!verify){
+            char debugMove[6];
+            moveToString(moves.moves[i], debugMove);
+            printf("broke at ply: %d by move: %s move binary is: %b \n", b->ply, debugMove, moves.moves[i]);
+        }
+        assert(verify);
+        //debugging
     }
     return total;
 }

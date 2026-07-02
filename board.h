@@ -8,6 +8,22 @@ typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece an
                        // 16-19 are captured piece and color, 20-23 for promotion piece and color
                        //24-31 for flags : 24-en pessant, 25-castle 26-Double pawn push
 
+void printMove(move m){
+    smol piece = (m >> 12) & 15;
+    
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
+
+    smol cPiece = (m >> 16) & 15;
+    smol pPiece = (m >> 20) & 15;
+    
+    smol enPessant = (m >> 24) & 1;
+    smol castle = (m >> 25) & 1;
+    smol DPP = (m >> 26) & 1;
+
+    printf("piece: %d\nfrom: %d\nto: %d\ncaptured piece: %d\npromotion Piece: %d\nen pessant: %d\ncastle: %d\ndouble pawn push: %d\n", piece, from, to, cPiece, pPiece, enPessant, castle, DPP);
+}
+
 typedef struct{
     u64 EnPessant;
     smol castleRights; // bit 0-WSC 1-WLC 2-BSC 3-BLC
@@ -56,6 +72,17 @@ void FENInit(Board* board, char* FEN){
 
     smol field = 0;
     
+    memset(board->pieces, 0, sizeof(board->pieces));
+    memset(board->coloredPieces, 0, sizeof(board->coloredPieces));
+    memset(board->pieceArr, Empty, sizeof(board->pieceArr));
+    memset(board->history, 0, sizeof(board->history));
+
+    board->allPieces = 0;
+    board->castleRights = 0;
+    board->enPessant = 0;
+    board->turn = White;
+    board->ply = 0;
+
     smol i = 0; // split string
     while(FEN[i] != '\0'){
         if(FEN[i] == ' '){
@@ -230,11 +257,13 @@ void printBoard(Board* board){
     }
 }
 
-void verifyBoard(Board* board){
+smol verifyBoard(Board* board){
     u64 pieces[13] = {0};
     u64 white = 0;
     u64 black = 0;
     u64 all = 0;
+
+    smol correct = 1;
 
     for(int j = 0; j < 64; j++){
         if(board->pieceArr[j] == Empty) continue;
@@ -251,14 +280,23 @@ void verifyBoard(Board* board){
     for(int i = WP; i <= BK; i++){
         if(board->pieces[i] != pieces[i]){
             printf("Mismatch in piece bitboard: %d \n", i);
+            correct = 0;
         }
     }
-    if(white != board->coloredPieces[White])
+    if(white != board->coloredPieces[White]){
         printf("Mismatch in white pieces bitboard \n");
-    if(black != board->coloredPieces[Black])
+        correct = 0;
+    }
+    if(black != board->coloredPieces[Black]){
         printf("Mismatch in black pieces bitboard \n");
-    if(all != board->allPieces)
+        correct = 0;
+    }
+    if(all != board->allPieces){
         printf("Mismatch in all pieces bitboard \n");
+        correct = 0;
+    }
+
+    return correct;
 }
 
 void makeMove(Board* b, move m){

@@ -30,7 +30,7 @@ int main(){
 
     // makeMove(&board, Encode_Move(G1, F3, WN, Empty, Empty, 0));
     printf("PERFT: %llu\n", perftDevide(3 ,&board));
-    // printf("PERFT: %llu\n", perft(4 ,&board));
+    // printf("PERFT: %llu\n", perft(3 ,&board));
     
     // makeMove(&board, Encode_Move(A8, B8, BR, Empty, Empty, None));
     // generateMoves(&board, &moveList);
