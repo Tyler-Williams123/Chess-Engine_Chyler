@@ -1,7 +1,5 @@
 #ifndef Move_Generation_H
 #define Move_Generation_H
-#include "board.h"
-#include "defs.h"
 #include <assert.h>
 
 #define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))

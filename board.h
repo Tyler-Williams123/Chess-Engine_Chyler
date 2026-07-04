@@ -1,6 +1,6 @@
 #ifndef board_H
 #define board_H
-#include "defs.h"
+#include <string.h>
 
 
 typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
@@ -67,7 +67,7 @@ void FENInit(Board* board, char* FEN){
     char turn[2];
     char castling[8];
     char enPessant[4];
-    smol count = 0;;
+    smol count = 0;
 
     smol field = 0;
     
@@ -85,12 +85,13 @@ void FENInit(Board* board, char* FEN){
     smol i = 0; // split string
     while(FEN[i] != '\0'){
         if(FEN[i] == ' '){
-            i++;
             switch(field){
                 case(0): pieces[count] = '\0'; break;
                 case(2): castling[count] = '\0'; break;
+                case(3): enPessant[count] = '\0'; break;
             }
             
+            i++;
             field++;
             count = 0;
             continue;
@@ -103,7 +104,6 @@ void FENInit(Board* board, char* FEN){
         }
         i++;
     }
-    enPessant[count] = '\0';
     turn[1] = '\0';
     
     board->turn = turn[0] == 'w' ? White : Black; // turn
@@ -122,7 +122,6 @@ void FENInit(Board* board, char* FEN){
     i = 0;
     smol rank = 0; // En Pessant
     smol file = 0;
-    board->enPessant = 0;
     if(enPessant[0] != '-'){
         rank = enPessant[0] - 'a';
         file = (enPessant[1] - '1') * 8;
@@ -278,7 +277,7 @@ void makeMove(Board* b, move m){
     b->pieceArr[to] = b->pieceArr[from];
     b->pieceArr[from] = Empty;
 
-    b->enPessant = NO_SQ;
+    b->enPessant = 0;
     if(piece == WR || piece == BR){
         switch(from){
             case(A1): b->castleRights &= 0b1101; break;

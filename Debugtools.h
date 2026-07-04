@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "moveGeneration.h"
-#include "defs.h"
-#include "board.h"
 
 enum {WPHash = 0, WNHash = (WN - 1) * 64, WBHash = (WB - 1) * 64, WRHash = (WR - 1) * 64, WQHash = (WQ - 1) * 64, WKHash = (WK - 1) * 64,
       BPHash = (BP - 1) * 64, BNHash = (BN - 1) * 64, BBHash = (BB - 1) * 64, BRHash = (BR - 1) * 64, BQHash = (BQ - 1) * 64, BKHash = (BK - 1) * 64,
@@ -16,11 +13,69 @@ typedef struct{
     Dictionary table;
 }ZobristHash;
 
-void initZobristArray(ZobristHash* zobrist){ // figure out how to do randoms
+void initZobrist(ZobristHash* zobrist){ // figure out how to do randoms
     for(int i = 0; i <= HHash; i++){
         zobrist->randoms[rand64()];
     }
     dictInit(&zobrist->table, 20);
+}
+
+void generateFen(Board* b){
+    char FEN[80];
+    smol count = 0;
+    for(int rank = 7; rank >= 0; rank--)
+    {
+        int blanks = 0;
+        for(int file = 0; file < 8; file++)
+        {
+            int sq = rank * 8 + file;
+            switch(b->pieceArr[sq]){
+                case(Empty): blanks++; if(file == 7){FEN[count++] = '0' + blanks; blanks = 0;} break;
+                case(WP): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'P'; break;
+                case(WN): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'N'; break;
+                case(WB): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'B'; break;
+                case(WR): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'R'; break;
+                case(WQ): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'Q'; break;
+                case(WK): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'K'; break;
+                case(BP): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'p'; break;
+                case(BN): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'n'; break;
+                case(BB): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'b'; break;
+                case(BR): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'r'; break;
+                case(BQ): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'q'; break;
+                case(BK): if(blanks > 0){FEN[count++] = '0' + blanks; blanks = 0;} FEN[count++] = 'k'; break;
+            }
+        }
+        if(rank != 0)
+            FEN[count++] = '/';
+    }
+    FEN[count++] = ' ';
+    FEN[count++] = b->turn ? 'b' : 'w';
+    FEN[count++] = ' ';
+    
+    if(b->castleRights & 1) FEN[count++] = 'K';
+    if((b->castleRights >> 1) & 1) FEN[count++] = 'Q';
+    if((b->castleRights >> 2) & 1) FEN[count++] = 'k';
+    if((b->castleRights >> 3) & 1) FEN[count++] = 'q';
+    
+    FEN[count++] = ' ';
+    if(!b->enPessant){
+        FEN[count++] = '-';
+    }
+    else{
+        smol EPSQ = __builtin_ctzll(b->enPessant);
+        smol file = EPSQ % 8;
+        smol rank = (EPSQ / 8);
+
+        FEN[count++] = 'a' + file;
+        FEN[count++] = '1' + rank;
+    }
+    FEN[count++] = ' ';
+    FEN[count++] = '0';
+    FEN[count++] = ' ';
+    FEN[count++] = '1';
+    FEN[count++] = '\0';
+
+    printf("%s\n", FEN);
 }
 
 u64 zobrist(Board* b, ZobristHash* z){ // need to fix for phantom en Pessant;
@@ -50,7 +105,7 @@ u64 zobrist(Board* b, ZobristHash* z){ // need to fix for phantom en Pessant;
     hash ^= (b->castleRights >> 2) & 1 ? z->randoms[BKCastleHash] : 0;
     hash ^= (b->castleRights >> 3) & 1 ? z->randoms[BQCastleHash] : 0;
 
-    hash ^= b->enPessant != NO_SQ ? z->randoms[b->enPessant % 8 + AHash] : 0;
+    hash ^= b->enPessant != 0 ? z->randoms[__builtin_ctzll(b->enPessant) % 8 + AHash] : 0;
 
     return hash;
 }
@@ -116,7 +171,7 @@ u64 perft(smol depth, Board* b){
     return total;
 }
 
-u64 perftDevide(smol depth, Board* b){
+u64 perftDevide(smol depth, Board* b, ZobristHash* z){
     MoveList moves;
     u64 total = 0;
 
@@ -130,14 +185,7 @@ u64 perftDevide(smol depth, Board* b){
         makeMove(b, moves.moves[i]);
 
         // debugging
-        smol verify = verifyBoard(b);
-        if(!verify){
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("broke at ply: %d by move: %s", b->ply, debugMove, moves.moves[i]);
-            printMove(moves.moves[i]);
-        }
-        assert(verify);
+        u64 zobr = zobrist(b, z);
         //debugging
         
         u64 perf = perft(depth - 1, b);
@@ -151,13 +199,14 @@ u64 perftDevide(smol depth, Board* b){
         b->ply--;
 
         // debugging
-        verify = verifyBoard(b);
-        if(!verify){
+        if(zobr != zobrist(b, z)){ // !verify
+            verifyBoard(b);
             char debugMove[6];
             moveToString(moves.moves[i], debugMove);
-            printf("broke at ply: %d by move: %s move binary is: %b \n", b->ply, debugMove, moves.moves[i]);
+            printf("broke at ply: %d by move: %s\n", b->ply, debugMove, moves.moves[i]);
+            printMove(moves.moves[i]);
         }
-        assert(verify);
+        assert(zobr == zobrist(b, z));
         //debugging
     }
 
