@@ -1,8 +1,7 @@
 #ifndef board_H
 #define board_H
+#include "defs.h"
 
-typedef unsigned char smol;
-typedef unsigned long long u64;
 
 typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
                        // 16-19 are captured piece and color, 20-23 for promotion piece and color
@@ -255,48 +254,6 @@ void printBoard(Board* board){
         }
         printf("\n");
     }
-}
-
-smol verifyBoard(Board* board){
-    u64 pieces[13] = {0};
-    u64 white = 0;
-    u64 black = 0;
-    u64 all = 0;
-
-    smol correct = 1;
-
-    for(int j = 0; j < 64; j++){
-        if(board->pieceArr[j] == Empty) continue;
-        pieces[board->pieceArr[j]] = pieces[board->pieceArr[j]] | (1ULL << j);
-    }
-    for(int j = WP; j <= WK; j++){
-        white |= pieces[j];
-    }
-    for(int j = BP; j <= BK; j++){
-        black |= pieces[j];
-    }
-    all = white | black;
-
-    for(int i = WP; i <= BK; i++){
-        if(board->pieces[i] != pieces[i]){
-            printf("Mismatch in piece bitboard: %d \n", i);
-            correct = 0;
-        }
-    }
-    if(white != board->coloredPieces[White]){
-        printf("Mismatch in white pieces bitboard \n");
-        correct = 0;
-    }
-    if(black != board->coloredPieces[Black]){
-        printf("Mismatch in black pieces bitboard \n");
-        correct = 0;
-    }
-    if(all != board->allPieces){
-        printf("Mismatch in all pieces bitboard \n");
-        correct = 0;
-    }
-
-    return correct;
 }
 
 void makeMove(Board* b, move m){

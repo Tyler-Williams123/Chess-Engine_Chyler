@@ -1,6 +1,7 @@
 #ifndef Move_Generation_H
 #define Move_Generation_H
 #include "board.h"
+#include "defs.h"
 #include <assert.h>
 
 #define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))
@@ -646,72 +647,6 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
             b->ply--;
         }
     }
-}
-
-u64 perft(smol depth, Board* b){
-    MoveList moves;
-    u64 total = 0;
-
-    if(depth <= 0){
-        return 1;
-    }
-
-    generateMoves(b, &moves);
-    for(int i = 0; i < moves.count; i++){
-        b->ply++;
-        makeMove(b, moves.moves[i]);
-        total += perft(depth - 1, b);
-        undoMove(b, moves.moves[i]);
-        b->ply--;
-    }
-    return total;
-}
-
-u64 perftDevide(smol depth, Board* b){
-    MoveList moves;
-    u64 total = 0;
-
-    if(depth <= 0){
-        return 1;
-    }
-
-    generateMoves(b, &moves);
-    for(int i = 0; i < moves.count; i++){
-        b->ply++;
-        makeMove(b, moves.moves[i]);
-
-        // debugging
-        smol verify = verifyBoard(b);
-        if(!verify){
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("broke at ply: %d by move: %s", b->ply, debugMove, moves.moves[i]);
-            printMove(moves.moves[i]);
-        }
-        assert(verify);
-        //debugging
-        
-        u64 perf = perft(depth - 1, b);
-        total += perf;
-        
-        char buffer[6];
-        moveToString(moves.moves[i], buffer);
-        printf("%s %llu\n", buffer, perf);
-        
-        undoMove(b, moves.moves[i]);
-        b->ply--;
-
-        // debugging
-        verify = verifyBoard(b);
-        if(!verify){
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("broke at ply: %d by move: %s move binary is: %b \n", b->ply, debugMove, moves.moves[i]);
-        }
-        assert(verify);
-        //debugging
-    }
-    return total;
 }
 
 #endif
