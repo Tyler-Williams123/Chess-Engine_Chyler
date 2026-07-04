@@ -40,7 +40,7 @@ enum {
     A5, B5, C5, D5, E5, F5, G5, H5,
     A6, B6, C6, D6, E6, F6, G6, H6,
     A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8,
+    A8, B8, C8, D8, E8, F8, G8, H8, NO_SQ = -15
 };
 
 enum {White, Black};
@@ -278,7 +278,7 @@ void makeMove(Board* b, move m){
     b->pieceArr[to] = b->pieceArr[from];
     b->pieceArr[from] = Empty;
 
-    b->enPessant = 0;
+    b->enPessant = NO_SQ;
     if(piece == WR || piece == BR){
         switch(from){
             case(A1): b->castleRights &= 0b1101; break;
