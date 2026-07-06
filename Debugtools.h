@@ -13,7 +13,7 @@ typedef struct{
     Dictionary table;
 }ZobristHash;
 
-void initZobrist(ZobristHash* zobrist){ // figure out how to do randoms
+void initZobrist(ZobristHash* zobrist){
     for(int i = 0; i <= HHash; i++){
         zobrist->randoms[rand64()];
     }
@@ -152,6 +152,31 @@ smol verifyBoard(Board* board){
     return correct;
 }
 
+smol compareBoard(Board* b1, Board* b2){ // b1 is true board b2 is old board
+    for(int i  = WP; i <= BK; i++){
+        if (b2->pieces[i] != b1->pieces[i]){
+            return 0;
+        }
+    }
+
+    if(b2->coloredPieces[White] != b1->coloredPieces[White]) return 0;
+    if(b2->coloredPieces[Black] != b1->coloredPieces[Black]) return 0;
+
+    if(b2->allPieces != b1->allPieces) return 0;
+
+    if(b2->enPessant != b1->enPessant) return 0;
+    if(b2->castleRights != b1->castleRights) return 0;
+    if(b2->turn != b1->turn) return 0;
+    
+    for(int i = A1; i <= H8; i++){
+        if(b2->pieceArr[i] != b1->pieceArr[i]) return 0;
+    }
+
+    if(b2->ply != b1->ply) return 0;
+    if(memcmp(b2, b1, sizeof(Undo) * (b1->ply + 1)) != 0) return 0;
+    return 1;
+}
+
 u64 perft(smol depth, Board* b){
     MoveList moves;
     u64 total = 0;
@@ -181,12 +206,11 @@ u64 perftDevide(smol depth, Board* b, ZobristHash* z){
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
+        //debug
+        Board before = *b;
+        // debug
         b->ply++;
         makeMove(b, moves.moves[i]);
-
-        // debugging
-        u64 zobr = zobrist(b, z);
-        //debugging
         
         u64 perf = perft(depth - 1, b);
         total += perf;
@@ -199,14 +223,15 @@ u64 perftDevide(smol depth, Board* b, ZobristHash* z){
         b->ply--;
 
         // debugging
-        if(zobr != zobrist(b, z)){ // !verify
+        smol verify = compareBoard(&before, b);
+        if(!verify){
             verifyBoard(b);
             char debugMove[6];
             moveToString(moves.moves[i], debugMove);
             printf("broke at ply: %d by move: %s\n", b->ply, debugMove, moves.moves[i]);
             printMove(moves.moves[i]);
         }
-        assert(zobr == zobrist(b, z));
+        assert(verify);
         //debugging
     }
 

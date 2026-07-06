@@ -127,7 +127,7 @@ void FENInit(Board* board, char* FEN){
         file = (enPessant[1] - '1') * 8;
         board->enPessant = 1ULL << (rank + file);
     }
-
+    
     i = 0; // pieces
     count = A8;
     while(pieces[i] != '\0'){
