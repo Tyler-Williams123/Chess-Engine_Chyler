@@ -1,27 +1,9 @@
 #ifndef board_H
 #define board_H
-#include <string.h>
-
 
 typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
                        // 16-19 are captured piece and color, 20-23 for promotion piece and color
                        //24-31 for flags : 24-en pessant, 25-castle 26-Double pawn push
-
-void printMove(move m){
-    smol piece = (m >> 12) & 15;
-    
-    smol from = m & 0x3f;
-    smol to = (m >> 6) & 0x3f;
-
-    smol cPiece = (m >> 16) & 15;
-    smol pPiece = (m >> 20) & 15;
-    
-    smol enPessant = (m >> 24) & 1;
-    smol castle = (m >> 25) & 1;
-    smol DPP = (m >> 26) & 1;
-
-    printf("piece: %d\nfrom: %d\nto: %d\ncaptured piece: %d\npromotion Piece: %d\nen pessant: %d\ncastle: %d\ndouble pawn push: %d\n", piece, from, to, cPiece, pPiece, enPessant, castle, DPP);
-}
 
 typedef struct{
     u64 EnPessant;
@@ -255,6 +237,81 @@ void printBoard(Board* board){
     }
 }
 
+smol verifyBoard1(Board* board){ 
+    u64 pieces[13] = {0};
+    u64 white = 0;
+    u64 black = 0;
+    u64 all = 0;
+
+    smol correct = 1;
+
+    for(int j = 0; j < 64; j++){
+        if(board->pieceArr[j] == Empty) continue;
+        pieces[board->pieceArr[j]] = pieces[board->pieceArr[j]] | (1ULL << j);
+    }
+    for(int j = WP; j <= WK; j++){
+        white |= pieces[j];
+    }
+    for(int j = BP; j <= BK; j++){
+        black |= pieces[j];
+    }
+    all = white | black;
+
+    for(int i = WP; i <= BK; i++){
+        if(board->pieces[i] != pieces[i]){
+            printf("Mismatch in piece bitboard: %d \n", i);
+            correct = 0;
+        }
+    }
+    if(white != board->coloredPieces[White]){
+        printf("Mismatch in white pieces bitboard \n");
+        correct = 0;
+    }
+    if(black != board->coloredPieces[Black]){
+        printf("Mismatch in black pieces bitboard \n");
+        correct = 0;
+    }
+    if(all != board->allPieces){
+        printf("Mismatch in all pieces bitboard \n");
+        correct = 0;
+    }
+
+    return correct;
+}
+
+void printMove1(move m){
+    smol piece = (m >> 12) & 15;
+    
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
+
+    smol cPiece = (m >> 16) & 15;
+    smol pPiece = (m >> 20) & 15;
+    
+    smol enPessant = (m >> 24) & 1;
+    smol castle = (m >> 25) & 1;
+    smol DPP = (m >> 26) & 1;
+
+    printf("piece: %d\nfrom: %d\nto: %d\ncaptured piece: %d\npromotion Piece: %d\nen pessant: %d\ncastle: %d\ndouble pawn push: %d\n", piece, from, to, cPiece, pPiece, enPessant, castle, DPP);
+}
+
+const char* moveToString1(move m, char* b){
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
+
+    char file = 'a' + (from % 8);
+    char rank = '1' + (from / 8);
+    b[0] = file;
+    b[1] = rank;
+
+    file = 'a' + (to % 8);
+    rank = '1' + (to / 8);
+    b[2] = file;
+    b[3] = rank;
+
+    b[4] = '\0';
+}
+
 void makeMove(Board* b, move m){
     Undo state;
     state.EnPessant = b->enPessant;
@@ -355,6 +412,15 @@ void makeMove(Board* b, move m){
     b->allPieces |= 1ULL << to;
 
     b->turn++;
+    if(!verifyBoard1(b)){
+            char debugMove[6];
+            moveToString1(m, debugMove);
+            printBoard(b);
+            printf("BB bitboard: %llu\n", b->pieces[BB]);
+            printf("verify board(pre undo) failed at %s\n", debugMove);
+            printMove1(m);
+            exit(1);
+        }
 }
 
 void undoMove(Board* b, move m){

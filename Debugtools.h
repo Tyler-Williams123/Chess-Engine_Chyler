@@ -1,12 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 enum {WPHash = 0, WNHash = (WN - 1) * 64, WBHash = (WB - 1) * 64, WRHash = (WR - 1) * 64, WQHash = (WQ - 1) * 64, WKHash = (WK - 1) * 64,
       BPHash = (BP - 1) * 64, BNHash = (BN - 1) * 64, BBHash = (BB - 1) * 64, BRHash = (BR - 1) * 64, BQHash = (BQ - 1) * 64, BKHash = (BK - 1) * 64,
       BlackMoveHash = 768,
       WKCastleHash, WQCastleHash, BKCastleHash, BQCastleHash,
       AHash, HHash = AHash + 7};
-
 
 typedef struct{
     u64 randoms[HHash + 1];
@@ -49,7 +45,7 @@ void generateFen(Board* b){
             FEN[count++] = '/';
     }
     FEN[count++] = ' ';
-    FEN[count++] = b->turn ? 'b' : 'w';
+    FEN[count++] = b->turn % 2 ? 'b' : 'w';
     FEN[count++] = ' ';
     
     if(b->castleRights & 1) FEN[count++] = 'K';
@@ -110,6 +106,22 @@ u64 zobrist(Board* b, ZobristHash* z){ // need to fix for phantom en Pessant;
     return hash;
 }
 
+void printMove(move m){
+    smol piece = (m >> 12) & 15;
+    
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
+
+    smol cPiece = (m >> 16) & 15;
+    smol pPiece = (m >> 20) & 15;
+    
+    smol enPessant = (m >> 24) & 1;
+    smol castle = (m >> 25) & 1;
+    smol DPP = (m >> 26) & 1;
+
+    printf("piece: %d\nfrom: %d\nto: %d\ncaptured piece: %d\npromotion Piece: %d\nen pessant: %d\ncastle: %d\ndouble pawn push: %d\n", piece, from, to, cPiece, pPiece, enPessant, castle, DPP);
+}
+
 smol verifyBoard(Board* board){ 
     u64 pieces[13] = {0};
     u64 white = 0;
@@ -159,7 +171,10 @@ smol compareBoard(Board* b1, Board* b2){ // b1 is true board b2 is old board
         }
     }
 
-    if(b2->coloredPieces[White] != b1->coloredPieces[White]) return 0;
+    if(b2->coloredPieces[White] != b1->coloredPieces[White]){
+        printf("colored piece bitboards mismatch");
+        return 0;
+    }
     if(b2->coloredPieces[Black] != b1->coloredPieces[Black]) return 0;
 
     if(b2->allPieces != b1->allPieces) return 0;
@@ -173,7 +188,7 @@ smol compareBoard(Board* b1, Board* b2){ // b1 is true board b2 is old board
     }
 
     if(b2->ply != b1->ply) return 0;
-    if(memcmp(b2, b1, sizeof(Undo) * (b1->ply + 1)) != 0) return 0;
+    if(memcmp(b2->history, b1->history, sizeof(Undo) * (b1->ply + 1)) != 0) return 0;
     return 1;
 }
 
@@ -187,11 +202,39 @@ u64 perft(smol depth, Board* b){
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
+        //debug
+        Board before = *b;
+        
+        if(!verifyBoard(b)){
+            char debugMove[6];
+            moveToString(moves.moves[i], debugMove);
+            printf("BB bitboard: %llu\n", b->pieces[BB]);
+            printf("verify board(pre undo) failed at %s at depth %d\n", debugMove, depth);
+            printMove(moves.moves[i]);
+            exit(1);
+        }
+        // debug
+
         b->ply++;
         makeMove(b, moves.moves[i]);
         total += perft(depth - 1, b);
         undoMove(b, moves.moves[i]);
         b->ply--;
+
+        // debugging
+        if(!verifyBoard(b)){
+            char debugMove[6];
+            moveToString(moves.moves[i], debugMove);
+            printf("verify board(post undo) failed at %s", debugMove);
+            exit(1);
+        }
+        if(!compareBoard(&before, b)){
+            char debugMove[6];
+            moveToString(moves.moves[i], debugMove);
+            printf("compare board failed at %s", debugMove);
+            exit(1);
+        }
+        //debugging
     }
     return total;
 }
@@ -217,7 +260,7 @@ u64 perftDevide(smol depth, Board* b, ZobristHash* z){
         
         char buffer[6];
         moveToString(moves.moves[i], buffer);
-        printf("%s %llu/", buffer, perf);
+        printf("%s %llu\n", buffer, perf);
         
         undoMove(b, moves.moves[i]);
         b->ply--;

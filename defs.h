@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 typedef unsigned long long u64;
 typedef unsigned char smol;
 

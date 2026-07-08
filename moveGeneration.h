@@ -1,6 +1,5 @@
 #ifndef Move_Generation_H
 #define Move_Generation_H
-#include <assert.h>
 
 #define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))
 
@@ -281,55 +280,39 @@ void generateBlackPawnMoves(Board* b, MoveList* m){
 
 u64 rookTargets(Board* b, smol sq){
     u64 moves = 0;
-    smol color = (1ULL << sq) & b->coloredPieces[Black] ? Black : White;
-    
-    u64 sameColorBB = b->coloredPieces[color];
-    u64 otherColorBB = b->coloredPieces[!color];
     
     for(int i = 1; i <= 7 - (sq % 8); i++){ //East
         u64 target = 1ULL << (sq + i);
-        if(target & sameColorBB){
-            break;
-        }
         moves |= target;
         
-        if(target & otherColorBB){
+        if(target & b->allPieces){
             break;
         }
     }
     
     for(int i = 1; i <= (sq % 8); i++){ //West
         u64 target = 1ULL << (sq - i);
-        if(target & sameColorBB){
-            break;
-        }
         moves |= target;
         
-        if(target & otherColorBB){
+        if(target & b->allPieces){
             break;
         }
     }
 
     for(int i = 1; i <= 7 - (sq / 8); i++){ //North
         u64 target = 1ULL << (sq + 8*i);
-        if(target & sameColorBB){
-            break;
-        }
         moves |= target;
         
-        if(target & otherColorBB){
+        if(target & b->allPieces){
             break;
         }
     }
 
     for(int i = 1; i <= (sq / 8); i++){ //South
         u64 target = 1ULL << (sq - 8*i);
-        if(target & sameColorBB){
-            break;
-        }
         moves |= target;
         
-        if(target & otherColorBB){
+        if(target & b->allPieces){
             break;
         }
     }
@@ -342,7 +325,7 @@ void generateWhiteRookMoves(Board* b, MoveList* m){
     while(rooks){
         smol from = __builtin_ctzll(rooks & -rooks);
 
-        u64 moves = rookTargets(b, from);
+        u64 moves = rookTargets(b, from) & ~b->coloredPieces[White];
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
@@ -360,7 +343,7 @@ void generateBlackRookMoves(Board* b, MoveList* m){
     while(rooks){
         smol from = __builtin_ctzll(rooks & -rooks);
 
-        u64 moves = rookTargets(b, from);
+        u64 moves = rookTargets(b, from) & ~b->coloredPieces[Black];
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
@@ -378,11 +361,6 @@ void generateBlackRookMoves(Board* b, MoveList* m){
 u64 bishopTargets(Board* b, smol sq){
     u64 moves = 0;
 
-    smol color = b->coloredPieces[Black] & (1ULL << sq) ? Black : White;
-
-    u64 SameColorBB = b->coloredPieces[color];
-    u64 OtherColorBB = b->coloredPieces[!color];
-
     smol rank = sq/8;
     smol file = sq%8;
 
@@ -393,56 +371,36 @@ u64 bishopTargets(Board* b, smol sq){
 
     for(int i = 1; i <= NE; i++){ // NorthEast
         smol target = sq + i*9;
-        
-        if(((1ULL << target) & SameColorBB)){
-            break;
-        }
-        
         moves |= 1ULL << target;
 
-        if((1ULL << target) & OtherColorBB){
+        if((1ULL << target) & b->allPieces){
             break;
         }
     }
 
     for(int i = 1; i <= NW; i++){ // NorthWest
         smol target = sq + i*7;
-        
-        if(((1ULL << target) & SameColorBB)){
-            break;
-        }
-        
         moves |= 1ULL << target;
 
-        if((1ULL << target) & OtherColorBB){
+        if((1ULL << target) & b->allPieces){
             break;
         }
     }
 
     for(int i = 1; i <= SW; i++){ // SouthWest
         smol target = sq - i*9;
-        
-        if(((1ULL << target) & SameColorBB)){
-            break;
-        }
-        
         moves |= 1ULL << target;
-
-        if((1ULL << target) & OtherColorBB){
+        
+        if((1ULL << target) & b->allPieces){
             break;
         }
     }
 
     for(int i = 1; i <= SE; i++){ // SouthEast
         smol target = sq - i*7;
-        
-        if(((1ULL << target) & SameColorBB)){
-            break;
-        }
-        
         moves |= 1ULL << target;
 
-        if((1ULL << target) & OtherColorBB){
+        if((1ULL << target) & b->allPieces){
             break;
         }
     }
@@ -455,7 +413,7 @@ void generateWhiteBishopMoves(Board* b, MoveList* m){
     while(bishops){
         smol from = __builtin_ctzll(bishops & -bishops);
 
-        u64 moves = bishopTargets(b, from);
+        u64 moves = bishopTargets(b, from) & ~b->coloredPieces[White];
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
@@ -473,7 +431,7 @@ void generateBlackBishopMoves(Board* b, MoveList* m){
     while(bishops){
         smol from = __builtin_ctzll(bishops & -bishops);
 
-        u64 moves = bishopTargets(b, from);
+        u64 moves = bishopTargets(b, from) & ~b->coloredPieces[Black];
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
@@ -497,7 +455,7 @@ void generateWhiteQueenMoves(Board* b, MoveList* m){
     while(queens){
         smol from = __builtin_ctzll(queens & -queens);
 
-        u64 moves = queenTargets(b, from);
+        u64 moves = queenTargets(b, from) & ~b->coloredPieces[White];
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
@@ -515,7 +473,7 @@ void generateBlackQueenMoves(Board* b, MoveList* m){
     while(queens){
         smol from = __builtin_ctzll(queens & -queens);
 
-        u64 moves = queenTargets(b, from);
+        u64 moves = queenTargets(b, from) & ~b->coloredPieces[Black];
         while(moves){
             smol to = __builtin_ctzll(moves & -moves);
             smol capture = b->pieceArr[to];
@@ -592,7 +550,7 @@ void generateBlackCastle(Board* b, MoveList* m){
         }
     }
     if(b->castleRights & 8){
-        if(!((allPieces & (1ULL << D8)) | (allPieces & (1ULL << C8)) | (allPieces & (1ULL << B8)))){
+        if(!((allPieces & (1ULL << D8)) | (allPieces & (1ULL << C8)) | (allPieces & (1ULL << B8)))){ // queenside
             if(!(squareAttacked(b, E8, Black) || squareAttacked(b, D8, Black) || squareAttacked(b, C8, Black))){
                 m->moves[m->count++] = Encode_Move(E8, C8, BK, None, None, Castle);
             }

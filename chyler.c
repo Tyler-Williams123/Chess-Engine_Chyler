@@ -1,5 +1,9 @@
 #include <stdio.h>
+#include <assert.h>
+#include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
+
 #include "defs.h"
 #include "board.h"
 #include "moveGeneration.h"
@@ -12,7 +16,7 @@ ZobristHash zobristHash;
 
 int main(){
     FENInit(&board, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-    initZobrist(&zobristHash);
+    // initZobrist(&zobristHash);
     // makeMove(&board, Encode_Move(E7, C5, BQ, Empty, None, None));
     // initBoard(&board);
 
@@ -31,16 +35,7 @@ int main(){
     //     count++;
     // }
 
-    // printf("PERFT: %llu\n", perft(2 ,&board));
-    printf("PERFT: %llu\n", perftDevide(4 ,&board, &zobristHash));
-    
-    // makeMove(&board, Encode_Move(A8, B8, BR, Empty, Empty, None));
-    // generateMoves(&board, &moveList);
-    // for(int i = 0; i < moveList.count; i++){
-    //     if(moveList.moves[i] & (1ULL << 25)){
-    //         printf("yeet");
-    //     } 
-    // }
+    printf("PERFT: %llu\n", perft(4 ,&board));
 
     return 0;
 }
