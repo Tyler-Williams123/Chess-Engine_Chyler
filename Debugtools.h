@@ -202,39 +202,11 @@ u64 perft(smol depth, Board* b){
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
-        //debug
-        Board before = *b;
-        
-        if(!verifyBoard(b)){
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("BB bitboard: %llu\n", b->pieces[BB]);
-            printf("verify board(pre undo) failed at %s at depth %d\n", debugMove, depth);
-            printMove(moves.moves[i]);
-            exit(1);
-        }
-        // debug
-
         b->ply++;
         makeMove(b, moves.moves[i]);
         total += perft(depth - 1, b);
         undoMove(b, moves.moves[i]);
         b->ply--;
-
-        // debugging
-        if(!verifyBoard(b)){
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("verify board(post undo) failed at %s", debugMove);
-            exit(1);
-        }
-        if(!compareBoard(&before, b)){
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("compare board failed at %s", debugMove);
-            exit(1);
-        }
-        //debugging
     }
     return total;
 }
@@ -249,9 +221,6 @@ u64 perftDevide(smol depth, Board* b, ZobristHash* z){
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
-        //debug
-        Board before = *b;
-        // debug
         b->ply++;
         makeMove(b, moves.moves[i]);
         
@@ -264,18 +233,6 @@ u64 perftDevide(smol depth, Board* b, ZobristHash* z){
         
         undoMove(b, moves.moves[i]);
         b->ply--;
-
-        // debugging
-        smol verify = compareBoard(&before, b);
-        if(!verify){
-            verifyBoard(b);
-            char debugMove[6];
-            moveToString(moves.moves[i], debugMove);
-            printf("broke at ply: %d by move: %s\n", b->ply, debugMove, moves.moves[i]);
-            printMove(moves.moves[i]);
-        }
-        assert(verify);
-        //debugging
     }
 
     return total;

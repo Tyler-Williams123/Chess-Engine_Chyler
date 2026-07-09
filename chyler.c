@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "board.h"
 #include "moveGeneration.h"
+#include "search.h"
 #include "Debugtools.h"
 
 
@@ -15,7 +16,7 @@ MoveList moveList;
 ZobristHash zobristHash;
 
 int main(){
-    FENInit(&board, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    FENInit(&board, "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
     // initZobrist(&zobristHash);
     // makeMove(&board, Encode_Move(E7, C5, BQ, Empty, None, None));
     // initBoard(&board);
@@ -35,7 +36,7 @@ int main(){
     //     count++;
     // }
 
-    printf("PERFT: %llu\n", perft(4 ,&board));
+    printf("PERFT: %llu\n", perft(5 ,&board));
 
     return 0;
 }
