@@ -1,10 +1,6 @@
 #ifndef board_H
 #define board_H
 
-typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
-                       // 16-19 are captured piece and color, 20-23 for promotion piece and color
-                       //24-31 for flags : 24-en pessant, 25-castle 26-Double pawn push
-
 typedef struct{
     u64 EnPessant;
     smol castleRights; // bit 0-WSC 1-WLC 2-BSC 3-BLC
@@ -42,7 +38,31 @@ typedef struct{
 
     Undo history[256];
     smol ply;
+
+    int scores[2]
 } Board;
+
+int fullEvaluate(Board* b){
+    for(int sq = A1; sq <= H8; sq++){
+        if(sq == Empty)
+            continue;
+
+        smol color = b->pieceArr[sq] > 6 ? Black : White;
+        if(color){
+            b->scores[Black] += pieceSQTable[b->pieceArr[sq] - 6][sq ^ 56];
+        }
+        else{
+            b->scores[White] += pieceSQTable[b->pieceArr[sq]][sq];
+        }
+    }
+
+    return b->scores[White] - b->scores[Black];
+}
+
+int evaluate(Board* b){
+    smol side = b->turn;
+    return b->scores[side] - b->scores[!side];
+}
 
 void FENInit(Board* board, char* FEN){
     char pieces[128];
@@ -57,6 +77,7 @@ void FENInit(Board* board, char* FEN){
     memset(board->coloredPieces, 0, sizeof(board->coloredPieces));
     memset(board->pieceArr, Empty, sizeof(board->pieceArr));
     memset(board->history, 0, sizeof(board->history));
+    memset(board->scores, 0, sizeof(board->scores));
 
     board->allPieces = 0;
     board->castleRights = 0;
@@ -148,12 +169,16 @@ void FENInit(Board* board, char* FEN){
         board->coloredPieces[Black] |= board->pieces[j];
     }
     board->allPieces = board->coloredPieces[White] | board->coloredPieces[Black];
+
+    fullEvaluate(board);
 }
 
 void initBoard(Board* board){
     board->turn = 0;
     board->enPessant = 0;
     board->castleRights = 0xf;
+
+    memset(board->scores, 0, sizeof(board->scores));
 
     board->pieces[WP] = 0x000000000000ff00;
     board->pieces[WR] = 0x0000000000000081;
@@ -190,14 +215,16 @@ void initBoard(Board* board){
     for (int i = A2; i <= H2; i++){
         board->pieceArr[i] = WP;
     }
-        board->pieceArr[A1] = WR;
-        board->pieceArr[B1] = WN;
-        board->pieceArr[C1] = WB;
-        board->pieceArr[D1] = WQ;
-        board->pieceArr[E1] = WK;
-        board->pieceArr[F1] = WB;
-        board->pieceArr[G1] = WN;
-        board->pieceArr[H1] = WR;
+    board->pieceArr[A1] = WR;
+    board->pieceArr[B1] = WN;
+    board->pieceArr[C1] = WB;
+    board->pieceArr[D1] = WQ;
+    board->pieceArr[E1] = WK;
+    board->pieceArr[F1] = WB;
+    board->pieceArr[G1] = WN;
+    board->pieceArr[H1] = WR;
+
+    fullEvaluate(board);
 }
 
 void printBoard(Board* board){
@@ -307,13 +334,17 @@ void makeMove(Board* b, move m){
         b->pieces[cPiece] &= ~(1ULL << EPCaptureSQ);
         b->allPieces &= ~(1ULL << EPCaptureSQ);
         
-        b->pieceArr[EPCaptureSQ] = Empty;   
+        b->pieceArr[EPCaptureSQ] = Empty;
+        
+        b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ (cColor * 56)];
     }
     else if(cPiece != Empty){
         smol cColor = cPiece > 6 ? Black : White;
         b->coloredPieces[cColor] &= ~(1ULL << to);
         b->pieces[cPiece] &= ~(1ULL << to);
         b->allPieces &= ~(1ULL << to);
+
+        b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
         
         switch(to){
             case(A1): b->castleRights &= 0b1101; break;
@@ -327,6 +358,7 @@ void makeMove(Board* b, move m){
     b->pieces[piece] &= ~(1ULL << from);
     b->allPieces &= ~(1ULL << from);
     
+    smol movingPiece = piece;
     if(pPiece){
         piece = pPiece;
         b->pieceArr[to] = pPiece;
@@ -336,7 +368,10 @@ void makeMove(Board* b, move m){
     b->pieces[piece] |= (1ULL << to);
     b->allPieces |= 1ULL << to;
 
-    b->turn++;
+    b->turn ^= 1;
+
+    b->scores[color] -= pieceSQTable[movingPiece - (color * 6)][from ^ (color * 56)];
+    b->scores[color] += pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
 }
 
 void undoMove(Board* b, move m){
@@ -360,10 +395,14 @@ void undoMove(Board* b, move m){
     b->pieces[piece] |= 1ULL << from;
     b->coloredPieces[color] |= 1ULL << from;
     
+    b->scores[color] += pieceSQTable[piece - (color * 6)][from ^ (color * 56)];
+
     if(pPiece){
         b->pieceArr[from] = piece;
         piece = pPiece;
     }
+
+    b->scores[color] -= pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
     
     b->allPieces &= ~(1ULL << to);
     b->pieces[piece] &= ~(1ULL << to);
@@ -400,18 +439,22 @@ void undoMove(Board* b, move m){
         b->allPieces |= 1ULL << EPCaptureSQ;
         b->pieces[cPiece] |= 1ULL << EPCaptureSQ;
         b->coloredPieces[cColor] |= 1ULL << EPCaptureSQ;
+
+        b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ (cColor * 56)];
     }
     else if(cPiece != Empty){
         smol cColor = cPiece > 6 ? Black : White;
         b->allPieces |= 1ULL << to;
         b->pieces[cPiece] |= 1ULL << to;
         b->coloredPieces[cColor] |= 1ULL << to;
+
+        b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
     }
 
     b->castleRights = b->history[b->ply].castleRights;
     b->enPessant = b->history[b->ply].EnPessant;
     
-    b->turn--;
+    b->turn ^= 1;
 }
 
 #endif

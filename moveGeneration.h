@@ -563,7 +563,7 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
     pseudo.count = 0;
 
     m->count = 0;
-    if(b->turn % 2 == White){
+    if(b->turn == White){
         generateWhitePawnMoves(b, &pseudo);
         generateWhiteKingMoves(b, &pseudo);
         generateWhiteKnightMoves(b, &pseudo);

@@ -45,7 +45,7 @@ void generateFen(Board* b){
             FEN[count++] = '/';
     }
     FEN[count++] = ' ';
-    FEN[count++] = b->turn % 2 ? 'b' : 'w';
+    FEN[count++] = b->turn ? 'b' : 'w';
     FEN[count++] = ' ';
     
     if(b->castleRights & 1) FEN[count++] = 'K';

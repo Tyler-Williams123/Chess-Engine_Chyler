@@ -1,1 +1,1 @@
-Piece Square Tabels taken from CHess programing wiki Simplified evaluation function. https://www.chessprogramming.org/Simplified_Evaluation_Function
+Piece square tabels taken from chess programing wiki Simplified evaluation function. https://www.chessprogramming.org/Simplified_Evaluation_Function
