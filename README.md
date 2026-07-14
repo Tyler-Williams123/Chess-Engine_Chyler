@@ -1,1 +1,2 @@
 Piece square tabels taken from chess programing wiki Simplified evaluation function. https://www.chessprogramming.org/Simplified_Evaluation_Function
+Perft values taken from chess programing wiki Perft results. https://www.chessprogramming.org/Perft_Results

@@ -39,29 +39,32 @@ typedef struct{
     Undo history[256];
     smol ply;
 
-    int scores[2]
+    int scores[2];
 } Board;
 
 int fullEvaluate(Board* b){
+    b->scores[White] = 0;
+    b->scores[Black] = 0;
     for(int sq = A1; sq <= H8; sq++){
-        if(sq == Empty)
+        if(b->pieceArr[sq] == Empty)
             continue;
 
         smol color = b->pieceArr[sq] > 6 ? Black : White;
         if(color){
+            b->scores[Black] += pieceValue[(b->pieceArr[sq] - 1) % 6];
             b->scores[Black] += pieceSQTable[b->pieceArr[sq] - 6][sq ^ 56];
         }
         else{
+            b->scores[White] += pieceValue[(b->pieceArr[sq] - 1)];
             b->scores[White] += pieceSQTable[b->pieceArr[sq]][sq];
         }
     }
 
-    return b->scores[White] - b->scores[Black];
+    return b->scores[b->turn] - b->scores[!b->turn];
 }
 
 int evaluate(Board* b){
-    smol side = b->turn;
-    return b->scores[side] - b->scores[!side];
+    return b->scores[b->turn] - b->scores[!b->turn];
 }
 
 void FENInit(Board* board, char* FEN){
@@ -264,7 +267,7 @@ void printBoard(Board* board){
     }
 }
 
-void makeMove(Board* b, move m){
+void makeMove(Board* b, move m){ // fix rook castling doesnt fix pst
     Undo state;
     state.EnPessant = b->enPessant;
     state.castleRights = b->castleRights;
@@ -336,6 +339,7 @@ void makeMove(Board* b, move m){
         
         b->pieceArr[EPCaptureSQ] = Empty;
         
+        b->scores[cColor] -= pieceValue[WP - 1];
         b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ (cColor * 56)];
     }
     else if(cPiece != Empty){
@@ -344,6 +348,7 @@ void makeMove(Board* b, move m){
         b->pieces[cPiece] &= ~(1ULL << to);
         b->allPieces &= ~(1ULL << to);
 
+        b->scores[cColor] -= pieceValue[(cPiece - 1) % 6];
         b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
         
         switch(to){
@@ -371,10 +376,13 @@ void makeMove(Board* b, move m){
     b->turn ^= 1;
 
     b->scores[color] -= pieceSQTable[movingPiece - (color * 6)][from ^ (color * 56)];
+    b->scores[color] -= pieceValue[(movingPiece - 1) % 6];
+    
+    b->scores[color] += pieceValue[(piece - 1) % 6];
     b->scores[color] += pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
 }
 
-void undoMove(Board* b, move m){
+void undoMove(Board* b, move m){ // fix rook castling doesnt fix pst
     smol piece = (m >> 12) & 15;
     smol color = piece > 6 ? Black : White;
     
@@ -395,6 +403,7 @@ void undoMove(Board* b, move m){
     b->pieces[piece] |= 1ULL << from;
     b->coloredPieces[color] |= 1ULL << from;
     
+    b->scores[color] += pieceValue[(piece - 1) % 6];
     b->scores[color] += pieceSQTable[piece - (color * 6)][from ^ (color * 56)];
 
     if(pPiece){
@@ -402,6 +411,7 @@ void undoMove(Board* b, move m){
         piece = pPiece;
     }
 
+    b->scores[color] -= pieceValue[(piece - 1) % 6];
     b->scores[color] -= pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
     
     b->allPieces &= ~(1ULL << to);
@@ -440,6 +450,7 @@ void undoMove(Board* b, move m){
         b->pieces[cPiece] |= 1ULL << EPCaptureSQ;
         b->coloredPieces[cColor] |= 1ULL << EPCaptureSQ;
 
+        b->scores[cColor] += pieceValue[WP - 1];
         b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ (cColor * 56)];
     }
     else if(cPiece != Empty){
@@ -448,6 +459,7 @@ void undoMove(Board* b, move m){
         b->pieces[cPiece] |= 1ULL << to;
         b->coloredPieces[cColor] |= 1ULL << to;
 
+        b->scores[cColor] += pieceValue[(cPiece - 1) % 6];
         b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
     }
 

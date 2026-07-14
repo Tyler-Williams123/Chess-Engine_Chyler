@@ -1,13 +1,13 @@
 typedef unsigned long long u64;
 typedef unsigned char smol;
 
-enum {Pawn = 100, Knight = 320, Bishop = 330, Rook = 500, Queen = 900, King = 10000};
+int pieceValue[6] = {100, 320, 330, 500, 900, 10000};
 
 typedef uint32_t move; // bits 0-5 are from, 6-11 are to, 12-15 are for piece and color and type
                        // 16-19 are captured piece and color, 20-23 for promotion piece and color
                        //24-31 for flags : 24-en pessant, 25-castle 26-Double pawn push
 
-smol pieceSQTable[8][64] = {
+int pieceSQTable[8][64] = {
     { // Empty
         0,  0,  0,  0,  0,  0,  0,  0,
         0,  0,  0,  0,  0,  0,  0,  0,
