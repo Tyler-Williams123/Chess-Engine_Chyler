@@ -60,11 +60,11 @@ int fullEvaluate(Board* b){
         }
     }
 
-    return b->scores[b->turn] - b->scores[!b->turn];
+    return b->scores[White] - b->scores[Black];
 }
 
 int evaluate(Board* b){
-    return b->scores[b->turn] - b->scores[!b->turn];
+    return b->scores[White] - b->scores[Black];
 }
 
 void FENInit(Board* board, char* FEN){
@@ -267,7 +267,7 @@ void printBoard(Board* board){
     }
 }
 
-void makeMove(Board* b, move m){ // fix rook castling doesnt fix pst
+void makeMove(Board* b, move m){
     Undo state;
     state.EnPessant = b->enPessant;
     state.castleRights = b->castleRights;
@@ -328,6 +328,9 @@ void makeMove(Board* b, move m){ // fix rook castling doesnt fix pst
         b->coloredPieces[color] |= (1ULL << rTo); // new location
         b->pieces[rook] |= (1ULL << rTo);
         b->allPieces |= 1ULL << rTo;
+
+        b->scores[color] -= pieceSQTable[WR][rFrom];
+        b->scores[color] += pieceSQTable[WR][rTo];
     }
     else if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
@@ -382,7 +385,7 @@ void makeMove(Board* b, move m){ // fix rook castling doesnt fix pst
     b->scores[color] += pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
 }
 
-void undoMove(Board* b, move m){ // fix rook castling doesnt fix pst
+void undoMove(Board* b, move m){
     smol piece = (m >> 12) & 15;
     smol color = piece > 6 ? Black : White;
     
@@ -438,6 +441,9 @@ void undoMove(Board* b, move m){ // fix rook castling doesnt fix pst
         b->coloredPieces[color] |= (1ULL << rFrom); // old location
         b->pieces[rook] |= (1ULL << rFrom);
         b->allPieces |= 1ULL << rFrom;
+
+        b->scores[color] -= pieceSQTable[WR][rTo];
+        b->scores[color] += pieceSQTable[WR][rFrom];
     }
     else if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
