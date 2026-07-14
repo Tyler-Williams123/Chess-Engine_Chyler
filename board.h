@@ -4,6 +4,8 @@
 typedef struct{
     u64 EnPessant;
     smol castleRights; // bit 0-WSC 1-WLC 2-BSC 3-BLC
+    u64 hash;
+    smol halfMoveClock;
 } Undo;
 
 enum{WSC, WLC, BSC, BLC};
@@ -34,17 +36,71 @@ typedef struct{
     smol castleRights; // bit 0-WSC 1-WLC 2-BSC 3-BLC
 
     smol pieceArr[64];
-    smol turn;
+    u64 hash;
 
     Undo history[256];
     smol ply;
-
+    
+    smol turn;
+    smol halfMoveClock;
     int scores[2];
 } Board;
+
+enum {WPHash = 0, WNHash = (WN - 1) * 64, WBHash = (WB - 1) * 64, WRHash = (WR - 1) * 64, WQHash = (WQ - 1) * 64, WKHash = (WK - 1) * 64,
+      BPHash = (BP - 1) * 64, BNHash = (BN - 1) * 64, BBHash = (BB - 1) * 64, BRHash = (BR - 1) * 64, BQHash = (BQ - 1) * 64, BKHash = (BK - 1) * 64,
+      BlackMoveHash = 768,
+      WKCastleHash, WQCastleHash, BKCastleHash, BQCastleHash,
+      AHash, HHash = AHash + 7};
+
+typedef struct{
+    u64 randoms[HHash + 1];
+    Dictionary table;
+}ZobristHash;
+
+void initZobrist(ZobristHash* zobrist){
+    for(int i = 0; i <= HHash; i++){
+        zobrist->randoms[i] = rand64();
+    }
+    dictInit(&zobrist->table, 20);
+}
+
+u64 zobrist(Board* b, ZobristHash* z){ // need to fix for phantom en Pessant;
+    u64 hash = 0;
+    for(int sq = A1; sq <= H8; sq++){
+        smol piece = b->pieceArr[sq];
+        switch(piece){
+            case(WP): hash ^= z->randoms[WPHash + sq]; break;
+            case(WN): hash ^= z->randoms[WNHash + sq]; break;
+            case(WB): hash ^= z->randoms[WBHash + sq]; break;
+            case(WR): hash ^= z->randoms[WRHash + sq]; break;
+            case(WQ): hash ^= z->randoms[WQHash + sq]; break;
+            case(WK): hash ^= z->randoms[WKHash + sq]; break;
+            case(BP): hash ^= z->randoms[BPHash + sq]; break;
+            case(BN): hash ^= z->randoms[BNHash + sq]; break;
+            case(BB): hash ^= z->randoms[BBHash + sq]; break;
+            case(BR): hash ^= z->randoms[BRHash + sq]; break;
+            case(BQ): hash ^= z->randoms[BQHash + sq]; break;
+            case(BK): hash ^= z->randoms[BKHash + sq]; break;
+        }
+    }
+
+    hash ^= b->turn ? z->randoms[BlackMoveHash] : 0;
+    
+    hash ^= b->castleRights & 1 ? z->randoms[WKCastleHash] : 0;
+    hash ^= (b->castleRights >> 1) & 1 ? z->randoms[WQCastleHash] : 0;
+    hash ^= (b->castleRights >> 2) & 1 ? z->randoms[BKCastleHash] : 0;
+    hash ^= (b->castleRights >> 3) & 1 ? z->randoms[BQCastleHash] : 0;
+
+    hash ^= b->enPessant != 0 ? z->randoms[__builtin_ctzll(b->enPessant) % 8 + AHash] : 0;
+
+    return hash;
+}
 
 int fullEvaluate(Board* b){
     b->scores[White] = 0;
     b->scores[Black] = 0;
+    b->halfMoveClock = 0;
+
     for(int sq = A1; sq <= H8; sq++){
         if(b->pieceArr[sq] == Empty)
             continue;
@@ -67,7 +123,9 @@ int evaluate(Board* b){
     return b->scores[White] - b->scores[Black];
 }
 
-void FENInit(Board* board, char* FEN){
+void FENInit(Board* board, char* FEN, ZobristHash* z){ // half move clock is just set to zero
+    initZobrist(z);
+    board->halfMoveClock = 0;
     char pieces[128];
     char turn[2];
     char castling[8];
@@ -174,9 +232,11 @@ void FENInit(Board* board, char* FEN){
     board->allPieces = board->coloredPieces[White] | board->coloredPieces[Black];
 
     fullEvaluate(board);
+    board->hash = zobrist(board, z);
 }
 
-void initBoard(Board* board){
+void initBoard(Board* board, ZobristHash* z){
+    initZobrist(z);
     board->turn = 0;
     board->enPessant = 0;
     board->castleRights = 0xf;
@@ -228,6 +288,7 @@ void initBoard(Board* board){
     board->pieceArr[H1] = WR;
 
     fullEvaluate(board);
+    board->hash = zobrist(board, z);
 }
 
 void printBoard(Board* board){
@@ -271,6 +332,8 @@ void makeMove(Board* b, move m){
     Undo state;
     state.EnPessant = b->enPessant;
     state.castleRights = b->castleRights;
+    state.halfMoveClock = b->halfMoveClock;
+    state.hash = b->hash;
     b->history[b->ply] = state;
 
     smol piece = (m >> 12) & 15;
