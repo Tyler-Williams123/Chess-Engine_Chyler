@@ -335,7 +335,7 @@ void printBoard(Board* board){
     }
 }
 
-void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
+void makeMove(Board* b, move m){
     Undo state;
     state.EnPessant = b->enPessant;
     state.castleRights = b->castleRights;
@@ -360,7 +360,20 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
     b->pieceArr[to] = b->pieceArr[from];
     b->pieceArr[from] = Empty;
 
+    if(b->enPessant){
+        b->hash ^= b->zobristHash.randoms[__builtin_ctzll(b->enPessant) % 8 + AHash];
+    }
     b->enPessant = 0;
+
+    if(b->castleRights & 1)
+        b->hash ^= b->zobristHash.randoms[WKCastleHash];
+    if(b->castleRights & 2)
+        b->hash ^= b->zobristHash.randoms[WQCastleHash];
+    if(b->castleRights & 4)
+        b->hash ^= b->zobristHash.randoms[BKCastleHash];
+    if(b->castleRights & 8)
+        b->hash ^= b->zobristHash.randoms[BQCastleHash];
+
     if(piece == WR || piece == BR){
         switch(from){
             case(A1): b->castleRights &= 0b1101; break;
@@ -372,13 +385,16 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
     switch(piece){
         case(WK): b->castleRights &= 0b1100; break;
         case(BK): b->castleRights &= 0b0011; break;
-        case(WP): b->halfMoveClock = 0;
-        case(BP): b->halfMoveClock = 0;
+        case(WP): b->halfMoveClock = 0; break;
+        case(BP): b->halfMoveClock = 0; break;
     }
     
     if(DPP){
-        u64 toBB = 1ULL << to;
-        if(((to << 1) | (to >> 1)) & b->pieces[WP + (color ^ 1) * 6]){
+        u64 toBB = 0;
+        toBB |= to % 8 != 0 ? (1ULL << to) >> 1 : 0;
+        toBB |= to % 8 != 7 ? (1ULL << to) << 1 : 0;
+        
+        if(toBB & b->pieces[WP + (color ^ 1) * 6]){
             smol EPSQ = color ? to + 8 : to - 8;
             b->enPessant = 1ULL << (EPSQ);
         }
@@ -400,10 +416,12 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
         b->coloredPieces[color] &= ~(1ULL << rFrom); // old location
         b->pieces[rook] &= ~(1ULL << rFrom);
         b->allPieces &= ~(1ULL << rFrom);
-
+        b->hash ^= b->zobristHash.randoms[(rook - 1) * 64 + rFrom];
+        
         b->coloredPieces[color] |= (1ULL << rTo); // new location
         b->pieces[rook] |= (1ULL << rTo);
         b->allPieces |= 1ULL << rTo;
+        b->hash ^= b->zobristHash.randoms[(rook - 1) * 64 + rTo];
 
         b->scores[color] -= pieceSQTable[WR][rFrom];
         b->scores[color] += pieceSQTable[WR][rTo];
@@ -415,6 +433,7 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
         b->coloredPieces[cColor] &= ~(1ULL << EPCaptureSQ);
         b->pieces[cPiece] &= ~(1ULL << EPCaptureSQ);
         b->allPieces &= ~(1ULL << EPCaptureSQ);
+        b->hash ^= b->zobristHash.randoms[(cPiece - 1) * 64 + EPCaptureSQ];
         
         b->pieceArr[EPCaptureSQ] = Empty;
         
@@ -428,6 +447,7 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
         b->coloredPieces[cColor] &= ~(1ULL << to);
         b->pieces[cPiece] &= ~(1ULL << to);
         b->allPieces &= ~(1ULL << to);
+        b->hash ^= b->zobristHash.randoms[(cPiece - 1) * 64 + to];
 
         b->scores[cColor] -= pieceValue[(cPiece - 1) % 6];
         b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
@@ -443,6 +463,7 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
     b->coloredPieces[color] &= ~(1ULL << from); // old location
     b->pieces[piece] &= ~(1ULL << from);
     b->allPieces &= ~(1ULL << from);
+    b->hash ^= b->zobristHash.randoms[(piece - 1) * 64 + from];
     
     smol movingPiece = piece;
     if(pPiece){
@@ -453,16 +474,29 @@ void makeMove(Board* b, move m){ //change zobrist stuff away from full recompute
     b->coloredPieces[color] |= (1ULL << to); // new location
     b->pieces[piece] |= (1ULL << to);
     b->allPieces |= 1ULL << to;
+    b->hash ^= b->zobristHash.randoms[(piece - 1) * 64 + to];
+
+    if(b->castleRights & 1)
+        b->hash ^= b->zobristHash.randoms[WKCastleHash];
+    if(b->castleRights & 2)
+        b->hash ^= b->zobristHash.randoms[WQCastleHash];
+    if(b->castleRights & 4)
+        b->hash ^= b->zobristHash.randoms[BKCastleHash];
+    if(b->castleRights & 8)
+        b->hash ^= b->zobristHash.randoms[BQCastleHash];
 
     b->turn ^= 1;
+    b->hash ^= b->zobristHash.randoms[BlackMoveHash];
+
+    if(b->enPessant){
+        b->hash ^= b->zobristHash.randoms[__builtin_ctzll(b->enPessant) % 8 + AHash];
+    }
 
     b->scores[color] -= pieceSQTable[movingPiece - (color * 6)][from ^ (color * 56)];
     b->scores[color] -= pieceValue[(movingPiece - 1) % 6];
     
     b->scores[color] += pieceValue[(piece - 1) % 6];
     b->scores[color] += pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
-
-    b->hash = zobrist(b);
 }
 
 void undoMove(Board* b, move m){

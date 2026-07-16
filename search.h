@@ -9,25 +9,24 @@ smol positionRepeats(Board* b){
     return 0;
 }
 
-int searchHelp(Board* b, int alpha, int beta, smol depth){
-
+int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes generating moves at some point
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
         return 0;
         
     int best = INT32_MIN;
-        
+    
     MoveList m;
     generateMoves(b, &m);
-
+    
     if(m.count == 0){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
-            return b->turn ? -100000 : 100000;
+        return b->turn ? -100000 : 100000;
         else
-            return 0;
+        return 0;
     }
-
+    
     if(depth == 0)
         return evaluate(b);
     
