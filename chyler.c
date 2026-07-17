@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <windows.h>
 
 #include "defs.h"
 #include "board.h"

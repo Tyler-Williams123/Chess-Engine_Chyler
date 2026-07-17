@@ -117,8 +117,13 @@ u64 rand64(){
 
 // Dictionary
 typedef struct{
+    int score;
+    signed char depth;
+} TranspositionTableItem;
+
+typedef struct{
     u64 key;
-    int value;
+    TranspositionTableItem tableItem;
 }node;
 
 typedef struct{
@@ -129,18 +134,27 @@ typedef struct{
 void dictInit(Dictionary* d, smol size){ //size is exponent 2^n size is n
     d->size = 1 << size;
     d->data = (node*)malloc(sizeof(node) * d->size);
+    memset(d->data, 0, sizeof(node) * d->size);
 }
 
 u64 dictHash(Dictionary* d, u64 key){
     return key & (d->size - 1);
 }
 
-void put(Dictionary* d, u64 key, int value){
-    d->data[dictHash(d, key)].key = key;
-    d->data[dictHash(d, key)].value = value;
+TranspositionTableItem get(Dictionary* d, u64 key){
+    u64 hash = dictHash(d, key);
+    if(d->data[hash].key == key){
+        return d->data[hash].tableItem;
+    }
+    TranspositionTableItem notFound = {.depth = -1, .score = 0};
+    return notFound;
 }
 
-int get(Dictionary* d, u64 key){
-    return d->data[dictHash(d, key)].value;
+void put(Dictionary* d, u64 key, TranspositionTableItem item){
+    u64 hash = dictHash(d, key);
+    if(get(d, key).depth <= item.depth){
+        d->data[hash].key = key;
+        d->data[hash].tableItem = item;
+    }
 }
 // Dictionary
