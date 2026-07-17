@@ -51,6 +51,8 @@ typedef struct{
     ZobristHash zobristHash;
     u64 hash;
 
+    Dictionary transpositionTable;
+
     Undo history[256];
     smol ply;
     
@@ -128,6 +130,7 @@ int evaluate(Board* b){
 void FENInit(Board* board, char* FEN){ // half move clock is just set to zero
     ZobristHash z;
     initZobrist(&z);
+    dictInit(&board->transpositionTable, 20);
     board->zobristHash = z;
 
     board->halfMoveClock = 0;
@@ -243,6 +246,7 @@ void FENInit(Board* board, char* FEN){ // half move clock is just set to zero
 void initBoard(Board* board){
     ZobristHash z;
     initZobrist(&z);
+    dictInit(&board->transpositionTable, 20);
     board->zobristHash = z;
     board->turn = 0;
     board->enPessant = 0;

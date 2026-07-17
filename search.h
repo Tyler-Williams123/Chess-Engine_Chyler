@@ -9,16 +9,21 @@ smol positionRepeats(Board* b){
     return 0;
 }
 
-int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes generating moves at some point
+int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes generating moves at some point. Also need to add upper and lower bound to tt tab
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
         return 0;
-        
+    
+    TranspositionTableItem ttState = get(&b->transpositionTable, b->hash);
+    if(ttState.depth >= depth){
+        return ttState.score; 
+    }
     int best = INT32_MIN;
     
     MoveList m;
     generateMoves(b, &m);
+    smol pruned = 0;
     
     if(m.count == 0){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
@@ -44,8 +49,10 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             undoMove(b, m.moves[i]);
             b->ply--;
 
-            if(alpha >= beta)
+            if(alpha >= beta){
+                pruned = 1;
                 break;
+            }
         }
     }
     else{
@@ -63,10 +70,18 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             undoMove(b, m.moves[i]);
             b->ply--;
     
-            if(beta <= alpha)
+            if(beta <= alpha){
+                pruned = 1;
                 break;
+            }
         }
     }
+
+    if(pruned == 0){
+        TranspositionTableItem ttItem = {.score = best, .depth = depth};
+        put(&b->transpositionTable, b->hash, ttItem);
+    }
+
     return best;
 }
 
