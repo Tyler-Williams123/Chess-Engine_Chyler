@@ -14,7 +14,7 @@ smol positionRepeats(Board* b){
     return 0;
 }
 
-int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes generating moves at some point. Also need to add upper and lower bound to tt tab
+int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes generating moves at some point. add better move ordering.
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
@@ -22,16 +22,24 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
     
     TranspositionTableItem ttState = get(&b->transpositionTable, b->hash);
     if(ttState.depth >= depth){
-        return ttState.score; 
+        if(ttState.flag == EXACT)
+            return ttState.score; 
+        if(ttState.flag == LOWER)
+            alpha = ttState.score;
+        else
+            beta = ttState.score;
+    }
+    if(alpha >= beta){
+        return ttState.score;
     }
     int best = INT32_MIN;
+    int chosenMove = NO_MOVE;
     
     MoveList m;
     generateMoves(b, &m);
-    smol pruned = 0;
+    smol flag = EXACT;
 
     scoredMove scoredMoves[m.count];
-    
     
     if(m.count == 0){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
@@ -51,7 +59,10 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
         smol capturedPiece = (m.moves[i] >> 16) & 15;
         
         scored.score = 0;
-        if(capturedPiece){
+        if(ttState.bestMove == scored.move){
+            scored.score = INT32_MAX;
+        }
+        else if(capturedPiece){
             scored.score = 10 * pieceValue[(capturedPiece - 1) % 6] - pieceValue[(piece - 1) % 6];
         }
         scoredMoves[i] = scored;
@@ -72,8 +83,10 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             makeMove(b, bestMove.move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
-            if(result > best)
+            if(result > best){
+                chosenMove = bestMove.move;
                 best = result;
+            }
             if(result > alpha)
                 alpha = result;
             
@@ -81,7 +94,7 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             b->ply--;
 
             if(alpha >= beta){
-                pruned = 1;
+                flag = LOWER;
                 break;
             }
         }
@@ -102,8 +115,10 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             makeMove(b, bestMove.move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
-            if(result < best)
+            if(result < best){
+                chosenMove = bestMove.move;
                 best = result;
+            }
             if(result < beta)
                 beta = result;
             
@@ -111,16 +126,14 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             b->ply--;
     
             if(beta <= alpha){
-                pruned = 1;
+                flag = UPPER;
                 break;
             }
         }
     }
 
-    if(pruned == 0){
-        TranspositionTableItem ttItem = {.score = best, .depth = depth};
+        TranspositionTableItem ttItem = {.score = best, .bestMove = chosenMove, .flag = flag, .depth = depth};
         put(&b->transpositionTable, b->hash, ttItem);
-    }
 
     return best;
 }

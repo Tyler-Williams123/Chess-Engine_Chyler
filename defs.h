@@ -116,9 +116,13 @@ u64 rand64(){
 // Random
 
 // Dictionary
+enum {UPPER, LOWER, EXACT};
+
 typedef struct{
     int score;
+    move bestMove;
     signed char depth;
+    smol flag;
 } TranspositionTableItem;
 
 typedef struct{
@@ -146,7 +150,7 @@ TranspositionTableItem get(Dictionary* d, u64 key){
     if(d->data[hash].key == key){
         return d->data[hash].tableItem;
     }
-    TranspositionTableItem notFound = {.depth = -1, .score = 0};
+    TranspositionTableItem notFound = {.depth = -1, .bestMove = NO_MOVE, .score = 0};
     return notFound;
 }
 
