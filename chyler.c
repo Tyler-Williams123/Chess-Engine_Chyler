@@ -39,7 +39,7 @@ int main(){
     
     while(count < 100){
         printf("Eval: %d\n", evaluate(&board));
-        move best = search(&board, 6);
+        move best = search(&board, 5);
         makeMove(&board, best);
 
         printBoard(&board);

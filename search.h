@@ -1,3 +1,8 @@
+typedef struct{
+    move move;
+    int score;
+} scoredMove;
+
 smol positionRepeats(Board* b){
     smol stop = b->ply - b->halfMoveClock;
     stop = stop >= 0 ? stop : 0;
@@ -24,6 +29,9 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
     MoveList m;
     generateMoves(b, &m);
     smol pruned = 0;
+
+    scoredMove scoredMoves[m.count];
+    
     
     if(m.count == 0){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
@@ -35,10 +43,33 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
     if(depth == 0)
         return evaluate(b);
     
+    for(int i = 0; i < m.count; i++){
+        scoredMove scored;
+        scored.move = m.moves[i];
+        
+        smol piece = (m.moves[i] >> 12) & 15;
+        smol capturedPiece = (m.moves[i] >> 16) & 15;
+        
+        scored.score = 0;
+        if(capturedPiece){
+            scored.score = 10 * pieceValue[(capturedPiece - 1) % 6] - pieceValue[(piece - 1) % 6];
+        }
+        scoredMoves[i] = scored;
+    }
+    
     if(b->turn == White){
         for(int i = 0; i < m.count; i++){
+            smol bestMoveIndex = 0;
+            for(int j = 1; j < m.count; j++){
+                if(scoredMoves[j].score > scoredMoves[bestMoveIndex].score){
+                    bestMoveIndex = j;
+                }
+            }
+            scoredMoves[bestMoveIndex].score = INT32_MIN;
+            scoredMove bestMove = scoredMoves[bestMoveIndex];
+
             b->ply++;
-            makeMove(b, m.moves[i]);
+            makeMove(b, bestMove.move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
             if(result > best)
@@ -46,7 +77,7 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             if(result > alpha)
                 alpha = result;
             
-            undoMove(b, m.moves[i]);
+            undoMove(b, bestMove.move);
             b->ply--;
 
             if(alpha >= beta){
@@ -57,9 +88,18 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
     }
     else{
         best = INT32_MAX;
-        for(int i = 0; i < m.count; i++){
+        for(int i = 0; i < m.count; i++){ // fix this to use best index
+            smol bestMoveIndex = 0;
+            for(int j = 1; j < m.count; j++){
+                if(scoredMoves[j].score > scoredMoves[bestMoveIndex].score){
+                    bestMoveIndex = j;
+                }
+            }
+            scoredMoves[bestMoveIndex].score = INT32_MIN;
+            scoredMove bestMove = scoredMoves[bestMoveIndex];
+   
             b->ply++;
-            makeMove(b, m.moves[i]);
+            makeMove(b, bestMove.move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
             if(result < best)
@@ -67,7 +107,7 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             if(result < beta)
                 beta = result;
             
-            undoMove(b, m.moves[i]);
+            undoMove(b, bestMove.move);
             b->ply--;
     
             if(beta <= alpha){
