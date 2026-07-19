@@ -25,9 +25,9 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
         if(ttState.flag == EXACT)
             return ttState.score; 
         if(ttState.flag == LOWER)
-            alpha = ttState.score;
+            alpha = ttState.score > alpha ? ttState.score : alpha;
         else
-            beta = ttState.score;
+            beta = ttState.score > beta ? ttState.score : beta;
     }
     if(alpha >= beta){
         return ttState.score;
@@ -38,16 +38,16 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
     MoveList m;
     generateMoves(b, &m);
     smol flag = EXACT;
-
+    
     scoredMove scoredMoves[m.count];
     
     if(m.count == 0){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
-        return b->turn ? -100000 : 100000;
+            return b->turn ? -100000 + b->ply : 100000 - b->ply;
         else
-        return 0;
+            return 0;
     }
-    
+
     if(depth == 0)
         return evaluate(b);
     
@@ -60,11 +60,18 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
         
         scored.score = 0;
         if(ttState.bestMove == scored.move){
-            scored.score = INT32_MAX;
+            scored.score = 100000;
         }
         else if(capturedPiece){
-            scored.score = 10 * pieceValue[(capturedPiece - 1) % 6] - pieceValue[(piece - 1) % 6];
+            scored.score = 5000 + 10 * pieceValue[(capturedPiece - 1) % 6] - pieceValue[(piece - 1) % 6];
         }
+        else if(scored.move == b->killerMoves[depth][0]){
+            scored.score= 4000;
+        }
+        else if(scored.move == b->killerMoves[depth][1]){
+            scored.score= 3900;
+        }
+
         scoredMoves[i] = scored;
     }
     
@@ -94,6 +101,10 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             b->ply--;
 
             if(alpha >= beta){
+                if(bestMove.move != b->killerMoves[depth][0]){
+                    b->killerMoves[depth][1] = b->killerMoves[depth][0];
+                    b->killerMoves[depth][0] = bestMove.move;
+                }
                 flag = LOWER;
                 break;
             }
@@ -126,6 +137,10 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
             b->ply--;
     
             if(beta <= alpha){
+                if(bestMove.move != b->killerMoves[depth][0]){
+                    b->killerMoves[depth][1] = b->killerMoves[depth][0];
+                    b->killerMoves[depth][0] = bestMove.move;
+                }
                 flag = UPPER;
                 break;
             }

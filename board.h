@@ -52,6 +52,7 @@ typedef struct{
     u64 hash;
 
     Dictionary transpositionTable;
+    move killerMoves[256][2];
 
     Undo history[256];
     smol ply;
@@ -147,6 +148,7 @@ void FENInit(Board* board, char* FEN){ // half move clock is just set to zero
     memset(board->pieceArr, Empty, sizeof(board->pieceArr));
     memset(board->history, 0, sizeof(board->history));
     memset(board->scores, 0, sizeof(board->scores));
+    memset(board->killerMoves, NO_MOVE, sizeof(board->killerMoves));
 
     board->allPieces = 0;
     board->castleRights = 0;
@@ -253,6 +255,7 @@ void initBoard(Board* board){
     board->castleRights = 0xf;
 
     memset(board->scores, 0, sizeof(board->scores));
+    memset(board->killerMoves, NO_MOVE, sizeof(board->killerMoves));
 
     board->pieces[WP] = 0x000000000000ff00;
     board->pieces[WR] = 0x0000000000000081;
