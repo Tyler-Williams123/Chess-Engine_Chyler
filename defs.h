@@ -1,3 +1,6 @@
+#ifndef DEFS_H
+#define DEFS_H
+
 typedef unsigned long long u64;
 typedef unsigned char smol;
 
@@ -99,23 +102,12 @@ int pieceSQTable[8][64] = {
     },
 };
 
-// Random
 u64 State = 64134767629435ULL;
 
-void seedRandom(u64 seed){
-    State = seed;
-}
+void seedRandom(u64 seed);
 
-u64 rand64(){
-    State ^= State >> 7;
-    State ^= State << 13;
-    State ^= State >> 17;
+u64 rand64();
 
-    return State;
-}
-// Random
-
-// Dictionary
 enum {UPPER, LOWER, EXACT};
 
 typedef struct{
@@ -135,30 +127,12 @@ typedef struct{
     u64 size;
 }Dictionary;
 
-void dictInit(Dictionary* d, smol size){ //size is exponent 2^n size is n
-    d->size = 1 << size;
-    d->data = (node*)malloc(sizeof(node) * d->size);
-    memset(d->data, 0, sizeof(node) * d->size);
-}
+void dictInit(Dictionary* d, smol size); //size is exponent 2^n size is n
 
-u64 dictHash(Dictionary* d, u64 key){
-    return key & (d->size - 1);
-}
+u64 dictHash(Dictionary* d, u64 key);
 
-TranspositionTableItem get(Dictionary* d, u64 key){
-    u64 hash = dictHash(d, key);
-    if(d->data[hash].key == key){
-        return d->data[hash].tableItem;
-    }
-    TranspositionTableItem notFound = {.depth = -1, .bestMove = NO_MOVE, .score = 0};
-    return notFound;
-}
+TranspositionTableItem get(Dictionary* d, u64 key);
 
-void put(Dictionary* d, u64 key, TranspositionTableItem item){
-    u64 hash = dictHash(d, key);
-    if(get(d, key).depth <= item.depth){
-        d->data[hash].key = key;
-        d->data[hash].tableItem = item;
-    }
-}
-// Dictionary
+void put(Dictionary* d, u64 key, TranspositionTableItem item);
+
+#endif
