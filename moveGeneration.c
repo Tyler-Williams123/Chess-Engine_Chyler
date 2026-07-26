@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "defs.h"
 #include "board.h"
 #include "moveGeneration.h"

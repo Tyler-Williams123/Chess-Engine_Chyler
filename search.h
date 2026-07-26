@@ -3,7 +3,6 @@
 
 #include "defs.h"
 #include "board.h"
-#include "moveGeneration.h"
 
 typedef struct{
     move move;

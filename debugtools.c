@@ -1,11 +1,14 @@
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "defs.h"
 #include "board.h"
 #include "moveGeneration.h"
 #include "search.h"
 #include "debugtools.h"
 
-void generateFen(Board* b){
-    char FEN[80];
+void generateFen(Board* b, char* FEN){
     smol count = 0;
     for(int rank = 7; rank >= 0; rank--)
     {
@@ -58,8 +61,6 @@ void generateFen(Board* b){
     FEN[count++] = ' ';
     FEN[count++] = '1';
     FEN[count++] = '\0';
-
-    printf("%s\n", FEN);
 }
 
 void printMove(move m){
@@ -167,19 +168,25 @@ u64 perft(smol depth, Board* b){
     return total;
 }
 
-void generateEvalNNBinaryData(smol depth, Board* b, DataEntry* data){
+void generateEvalNNBinaryData(smol depth, Board* b, DataEntry* data, int* count){
     MoveList moves;
     u64 total = 0;
 
-    if(depth <= 0){
-        return 1;
+    if (depth == 0){
+        return;
     }
 
     generateMoves(b, &moves);
     for(int i = 0; i < moves.count; i++){
+        DataEntry entry = {.sideToMove = b->turn, .castling = b->castleRights, .enPessant = b->enPessant, .FEN = {0}};
+        for(int i = 0; i < 12; i++){
+            entry.bitboards[i] = b->pieces[i + 1];
+        }
+        generateFen(b, entry.FEN);
+        data[(*count)++] = entry;
         b->ply++;
         makeMove(b, moves.moves[i]);
-        total += perft(depth - 1, b);
+        generateEvalNNBinaryData(depth - 1, b, data, count);
         undoMove(b, moves.moves[i]);
         b->ply--;
     }

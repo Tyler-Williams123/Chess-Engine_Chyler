@@ -1,12 +1,7 @@
 #ifndef DEBUGTOOLS_H
 #define DEBUGTOOLS_H
 
-#include "defs.h"
-#include "board.h"
-#include "moveGeneration.h"
-#include "search.h"
-
-void generateFen(Board* b);
+void generateFen(Board* b, char* FEN);
 
 void printMove(move m);
 
@@ -25,7 +20,7 @@ typedef struct{
     char FEN[100];
 } DataEntry;
 
-void generateEvalNNBinaryData(smol depth, Board* b, DataEntry* data);
+void generateEvalNNBinaryData(smol depth, Board* b, DataEntry* data, int* count);
 
 u64 perftDevide(smol depth, Board* b, ZobristHash* z);
 

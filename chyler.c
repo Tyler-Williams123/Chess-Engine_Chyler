@@ -8,18 +8,9 @@
 #include "board.h"
 #include "moveGeneration.h"
 #include "search.h"
-#include "Debugtools.h"
+#include "debugtools.h"
 
 Board board;
-typedef struct{
-    u64 bitboards[12];
-    smol sideToMove;
-    smol castling;
-    smol enPessant;
-
-    char FEN[100];
-} DataEntry;
-
 
 int main(){
     FILE* file = fopen("dataset.bin", "wb");
@@ -36,9 +27,15 @@ int main(){
     //     printBoard(&board);
     //     count++;
     // }
+    u64 size = perft(1, &board) + perft(2, &board) + perft(3, &board) + perft(4, &board) + 1;
+    DataEntry* data = malloc(sizeof(DataEntry) * size);
+    int count = 0;
+    generateEvalNNBinaryData(4, &board, data, &count);
 
-    // fwrite();
-    fclose("dataset.bin");
 
+    fwrite(data, sizeof(DataEntry), size, file);
+    fclose(file);
+
+    free(data);
     return 0;
 }

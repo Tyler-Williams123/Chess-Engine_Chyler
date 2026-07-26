@@ -1,6 +1,8 @@
 #ifndef board_H
 #define board_H
-#include "defs.h"
+
+#include <string.h>
+#include <stdio.h>
 
 typedef struct{
     u64 EnPessant;
