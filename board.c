@@ -4,6 +4,42 @@
 #include "defs.h"
 #include "board.h"
 
+move parseMove(char* move, Board* b){
+    smol rank = move[0] - 'a';
+    smol file = (move[1] - '1') * 8;
+    smol from = file + rank;
+    
+    rank = move[2] - 'a';
+    file = (move[3] - '1') * 8;
+    smol to = file + rank;
+
+    smol piece = b->pieceArr[from];
+    smol cPiece = b->pieceArr[to];
+
+    smol pPiece = Empty;
+
+    smol color = piece > 6 ? Black : White;
+    switch(move[4]){
+        case('n'): pPiece = color ? BN : WN; break;
+        case('b'): pPiece = color ? BB : WB; break;
+        case('r'): pPiece = color ? BR : WR; break;
+        case('q'): pPiece = color ? BQ : WQ; break;
+    }
+
+    smol flag = None;
+    if(piece == WP || piece == BP){
+        flag = (from - to) * (from - to) > 64 ? DoublePP : flag;
+        if(b->enPessant && to == __builtin_ctzll(b->enPessant))
+            flag = EnPessant;
+    }
+    else if(piece == WK || piece == BK){
+        if((from - to) * (from - to) == 4)
+            flag = Castle;
+    }
+
+    return Encode_Move(from, to, piece, cPiece, pPiece, flag);
+}
+
 void initZobrist(ZobristHash* zobrist){
     for(int i = 0; i <= HHash; i++){
         zobrist->randoms[i] = rand64();

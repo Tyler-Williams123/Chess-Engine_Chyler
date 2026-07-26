@@ -1,8 +1,12 @@
 #ifndef board_H
 #define board_H
 
+#include "defs.h"
+
 #include <string.h>
 #include <stdio.h>
+
+#define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))
 
 typedef struct{
     u64 EnPessant;
@@ -65,6 +69,8 @@ typedef struct{
     smol halfMoveClock;
     int scores[2];
 } Board;
+
+move parseMove(char* move, Board* b);
 
 void initZobrist(ZobristHash* zobrist);
 

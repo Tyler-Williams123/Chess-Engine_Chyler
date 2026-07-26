@@ -4,8 +4,6 @@
 #include "defs.h"
 #include "board.h"
 
-#define Encode_Move(from, to, piece, capturedPiece, promotionPiece, flag) (from | (to << 6) | (piece << 12) | (capturedPiece << 16) | (promotionPiece << 20) | (flag << 24))
-
 typedef struct{
     move moves[256];
     smol count;
