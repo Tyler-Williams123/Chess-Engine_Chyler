@@ -39,10 +39,13 @@ void generateFen(Board* b, char* FEN){
     FEN[count++] = b->turn ? 'b' : 'w';
     FEN[count++] = ' ';
     
-    if(b->castleRights & 1) FEN[count++] = 'K';
-    if((b->castleRights >> 1) & 1) FEN[count++] = 'Q';
-    if((b->castleRights >> 2) & 1) FEN[count++] = 'k';
-    if((b->castleRights >> 3) & 1) FEN[count++] = 'q';
+    smol hasRights = 0;
+    if(b->castleRights & 1){ FEN[count++] = 'K'; hasRights = 1;}
+    if((b->castleRights >> 1) & 1){ FEN[count++] = 'Q'; hasRights = 1;}
+    if((b->castleRights >> 2) & 1){ FEN[count++] = 'k'; hasRights = 1;}
+    if((b->castleRights >> 3) & 1){ FEN[count++] = 'q'; hasRights = 1;}
+
+    if(hasRights == 0) FEN[count++] = '-';
     
     FEN[count++] = ' ';
     if(!b->enPessant){

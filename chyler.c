@@ -12,8 +12,8 @@
 
 Board board;
 
-int main(){
-    char line[300];
+int main(){ // add options, pondering iterative deepining, and time
+    char line[4000];
     initBoard(&board);
 
     while(fgets(line, sizeof(line), stdin)){
@@ -33,7 +33,7 @@ int main(){
             printf("readyok\n");
             fflush(stdout);
         }
-        else if(strncmp("position", line, 8) == 0){ // add moves afterward
+        else if(strncmp("position", line, 8) == 0){
             char* token = strtok(line, " ");
             token = strtok(NULL, " ");
             smol setup = 0;
@@ -85,7 +85,12 @@ int main(){
                 }
                 fflush(stdout);
             }
-    }
+        }
+        else if(strncmp(line, "eval", 4 == 0)){
+            int eval = evaluate(&board) / 100;
+            printf("%d\n", eval);
+            fflush(stdout);
+        }
     }
 
     return 0;

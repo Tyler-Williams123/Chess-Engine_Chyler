@@ -28,7 +28,7 @@ move parseMove(char* move, Board* b){
 
     smol flag = None;
     if(piece == WP || piece == BP){
-        flag = (from - to) * (from - to) > 64 ? DoublePP : flag;
+        flag = (from - to) * (from - to) > 255 ? DoublePP : flag;
         if(b->enPessant && to == __builtin_ctzll(b->enPessant))
             flag = EnPessant;
     }
