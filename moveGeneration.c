@@ -4,23 +4,6 @@
 #include "board.h"
 #include "moveGeneration.h"
 
-const char* moveToString(move m, char* b){
-    smol from = m & 0x3f;
-    smol to = (m >> 6) & 0x3f;
-
-    char file = 'a' + (from % 8);
-    char rank = '1' + (from / 8);
-    b[0] = file;
-    b[1] = rank;
-
-    file = 'a' + (to % 8);
-    rank = '1' + (to / 8);
-    b[2] = file;
-    b[3] = rank;
-
-    b[4] = '\0';
-}
-
 u64 knightTargets(smol sq){
     u64 notA = ~0x0101010101010101ULL;
     u64 notB = ~0x0202020202020202ULL;

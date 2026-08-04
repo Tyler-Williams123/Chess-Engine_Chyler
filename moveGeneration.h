@@ -9,8 +9,6 @@ typedef struct{
     smol count;
 }MoveList;
 
-const char* moveToString(move m, char* b);
-
 u64 knightTargets(smol sq);
 
 void generateWhiteKnightMoves(Board* b, MoveList* m);

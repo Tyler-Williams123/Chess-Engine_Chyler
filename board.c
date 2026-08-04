@@ -4,6 +4,35 @@
 #include "defs.h"
 #include "board.h"
 
+char* moveToString(move m, char* b){
+    smol from = m & 0x3f;
+    smol to = (m >> 6) & 0x3f;
+    smol promotionPiece = (m >> 20) & 15;
+
+    char file = 'a' + (from % 8);
+    char rank = '1' + (from / 8);
+    b[0] = file;
+    b[1] = rank;
+
+    file = 'a' + (to % 8);
+    rank = '1' + (to / 8);
+    b[2] = file;
+    b[3] = rank;
+
+    if(promotionPiece != Empty){
+        switch((promotionPiece - 1) % 6){
+            case(WN): b[4] = 'n';
+            case(WB): b[4] = 'b';
+            case(WR): b[4] = 'r';
+            case(WQ): b[4] = 'q';
+        }
+        b[5] = '\0';
+    }
+    else
+        b[4] = '\0';
+
+}
+
 move parseMove(char* move, Board* b){
     smol rank = move[0] - 'a';
     smol file = (move[1] - '1') * 8;

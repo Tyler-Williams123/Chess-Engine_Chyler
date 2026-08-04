@@ -70,6 +70,8 @@ typedef struct{
     int scores[2];
 } Board;
 
+char* moveToString(move m, char* b);
+
 move parseMove(char* move, Board* b);
 
 void initZobrist(ZobristHash* zobrist);
