@@ -584,6 +584,67 @@ void generateMoves(Board* b, MoveList* m){ // generates legal moves only
     }
 }
 
+smol hasLegalMove(Board* b){
+    MoveList pseudo;
+    pseudo.count = 0;
+
+    if(b->turn == White){
+        for (int i = 0; i < 7; i++){
+            switch(i){
+                case(0): generateWhitePawnMoves(b, &pseudo); break;
+                case(1): generateWhiteKingMoves(b, &pseudo); break;
+                case(2): generateWhiteKnightMoves(b, &pseudo); break;
+                case(3): generateWhiteRookMoves(b, &pseudo); break;
+                case(4): generateWhiteBishopMoves(b, &pseudo); break;
+                case(5): generateWhiteQueenMoves(b, &pseudo); break;
+                case(6): generateWhiteCastle(b, &pseudo); break;
+            }
+            
+            for(int i = 0; i < pseudo.count; i++){
+                b->ply++;
+                makeMove(b, pseudo.moves[i]);
+                
+                if(!squareAttacked(b, __builtin_ctzll(b->pieces[WK]), White)){
+                    undoMove(b, pseudo.moves[i]);
+                    b->ply--;
+                    return 1;
+                }
+                undoMove(b, pseudo.moves[i]);
+                b->ply--;
+            }
+            pseudo.count = 0;
+        }
+    }
+    else{
+        for(int i = 0; i < 7; i++){
+            switch(i){
+                case(0): generateBlackPawnMoves(b, &pseudo); break;
+                case(1): generateBlackKingMoves(b, &pseudo); break;
+                case(2): generateBlackKnightMoves(b, &pseudo); break;
+                case(3): generateBlackRookMoves(b, &pseudo); break;
+                case(4): generateBlackBishopMoves(b, &pseudo); break;
+                case(5): generateBlackQueenMoves(b, &pseudo); break;
+                case(6): generateBlackCastle(b, &pseudo); break;
+            }
+
+            for(int i = 0; i < pseudo.count; i++){
+                b->ply++;
+                makeMove(b, pseudo.moves[i]);
+                
+                if(!squareAttacked(b, __builtin_ctzll(b->pieces[BK]), Black)){
+                    undoMove(b, pseudo.moves[i]);
+                    b->ply--;
+                    return 1;
+                }
+                undoMove(b, pseudo.moves[i]);
+                b->ply--;
+            }
+            pseudo.count = 0;
+        }
+    }
+    return 0;
+}
+
 void generateCaptures(Board* b, MoveList* m){
     MoveList pseudo;
     pseudo.count = 0;

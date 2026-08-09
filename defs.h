@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdint.h>
 
 typedef unsigned long long u64;
 typedef unsigned char smol;

@@ -12,7 +12,7 @@
 
 Board board;
 
-int main(){ // add options, pondering iterative deepining, and time
+int main(){ // add options, pondering, iterative deepining, and time, figure out why bestmove is always b1b2
     char line[4000];
     initBoard(&board);
 

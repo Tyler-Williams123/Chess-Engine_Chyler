@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "defs.h"
 #include "board.h"
@@ -16,7 +17,7 @@ smol positionRepeats(Board* b){
     return 0;
 }
 
-int quiescence(Board* b, int alpha, int beta){ // add back ttTables fix draw by no legal moves checking
+int quiescence(Board* b, int alpha, int beta){ // add back ttTables
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
@@ -31,13 +32,13 @@ int quiescence(Board* b, int alpha, int beta){ // add back ttTables fix draw by 
         return standPat;
 
     int best = INT32_MIN;
-    
+
     MoveList m;
-    if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn)){
-        generateMoves(b, &m);
-        if(m.count == 0){
+    if(hasLegalMove(b)){
+        if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
             return b->turn ? -100000 + b->ply : 100000 - b->ply;
-        }
+        else
+            return 0;
     }
     else{
         generateCaptures(b, &m);
@@ -122,7 +123,7 @@ int quiescence(Board* b, int alpha, int beta){ // add back ttTables fix draw by 
     return best;
 }
 
-int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes generating moves at some point. fix move ordering loop
+int searchHelp(Board* b, int alpha, int beta, smol depth){ //fix move ordering loop
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
@@ -143,21 +144,21 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){ // fix all leaf nodes
     int best = INT32_MIN;
     int chosenMove = NO_MOVE;
     
-    MoveList m;
-    generateMoves(b, &m);
-    smol flag = EXACT;
-    
-    scoredMove scoredMoves[m.count];
-    
-    if(m.count == 0){
+    if(!hasLegalMove(b)){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
             return b->turn ? -100000 + b->ply : 100000 - b->ply;
         else
             return 0;
     }
-
+    
     if(depth == 0)
         return quiescence(b, alpha, beta);
+    
+    MoveList m;
+    generateMoves(b, &m);
+    smol flag = EXACT;
+    
+    scoredMove scoredMoves[m.count];
     
     for(int i = 0; i < m.count; i++){
         scoredMove scored;

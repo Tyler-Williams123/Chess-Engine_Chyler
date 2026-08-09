@@ -64,6 +64,8 @@ void generateBlackCastle(Board* b, MoveList* m);
 
 void generateMoves(Board* b, MoveList* m); // generates legal moves only
 
+smol hasLegalMove(Board* b);
+
 void generateCaptures(Board* b, MoveList* m);
 
 #endif
