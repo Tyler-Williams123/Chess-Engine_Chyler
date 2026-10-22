@@ -68,7 +68,7 @@ int main(){ // add options, pondering, iterative deepining, and time, figure out
                 }
             }
         }
-        else if(strncmp("go", line, 2) == 0){ // needs alot of stuff
+        else if(strncmp("go", line, 2) == 0){ // adding movetime
             char* token = strtok(line, " ");
             token = strtok(NULL, " ");
             
@@ -85,8 +85,31 @@ int main(){ // add options, pondering, iterative deepining, and time, figure out
                 }
                 fflush(stdout);
             }
+            if(token != NULL && strncmp("movetime", token, 8) == 0){
+                token = strtok(NULL, " ");
+                if(token != NULL){
+                    smol timeLimit = atoi(token);
+                    setTimer(timeLimit);
+                }
+                else{
+                    printf("invalid movetime command\n");
+                    fflush(stdout);
+                    continue;
+                }
+                
+                move bestMove = search(&board, atoi(token));
+                if(bestMove == NO_MOVE){
+                    printf("bestmove 0000\n");
+                }
+                else{
+                    char move[6];
+                    moveToString(bestMove, move);
+                    printf("bestmove %s\n", move);
+                }
+                fflush(stdout);
+            }
         }
-        else if(strncmp(line, "eval", 4 == 0)){
+        else if(strncmp(line, "eval", 4) == 0){
             int eval = evaluate(&board) / 100;
             printf("%d\n", eval);
             fflush(stdout);
