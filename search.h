@@ -19,6 +19,12 @@ int searchHelp(Board* b, int alpha, int beta, smol depth);
 
 move iterativeDeepen(Board* b, smol depth, move previousMove);
 
+/**
+ * Searches for the best move given a board state, depth, and time limit.
+ * @param b The board state.
+ * @param depth The maximum depth to search.
+ * @return The best move found.
+ */
 move search(Board* b, smol depth);
 
 #endif

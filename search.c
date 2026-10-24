@@ -5,7 +5,9 @@
 #include "board.h"
 #include "moveGeneration.h"
 #include "search.h"
+#include "Timer.h"
 
+smol stopSearch = 0;
 
 smol positionRepeats(Board* b){
     smol stop = b->ply - b->halfMoveClock;
@@ -19,23 +21,29 @@ smol positionRepeats(Board* b){
 }
 
 int quiescence(Board* b, int alpha, int beta){ // add back ttTables
+    if(timeUp()){
+        stopSearch = 1;
+        return 0;
+    }
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
         return 0;
     
     int standPat = evaluate(b);
-    if(standPat > alpha)
-        alpha = standPat;
-    if(standPat < beta)
-        beta = standPat;
-    if(alpha >= beta)
-        return standPat;
+        if(b->turn == White){
+            if(standPat >= beta) return standPat; 
+            if(standPat > alpha) alpha = standPat;
+        }
+        else{ 
+            if(standPat <= alpha) return standPat;
+            if(standPat < beta) beta = standPat;
+        }
 
-    int best = INT32_MIN;
+    int best = standPat;
 
     MoveList m;
-    if(hasLegalMove(b)){
+    if(!hasLegalMove(b)){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
             return b->turn ? -100000 + b->ply : 100000 - b->ply;
         else
@@ -76,6 +84,11 @@ int quiescence(Board* b, int alpha, int beta){ // add back ttTables
             makeMove(b, bestMove.move);
     
             int result = quiescence(b, alpha, beta);
+            if(stopSearch){
+                undoMove(b, bestMove.move);
+                b->ply--;
+                return 0;
+            }
             if(result > best){
                 best = result;
             }
@@ -91,7 +104,6 @@ int quiescence(Board* b, int alpha, int beta){ // add back ttTables
         }
     }
     else{
-        best = INT32_MAX;
         for(int i = 0; i < m.count; i++){
             smol bestMoveIndex = 0;
             for(int j = 1; j < m.count; j++){
@@ -106,6 +118,11 @@ int quiescence(Board* b, int alpha, int beta){ // add back ttTables
             makeMove(b, bestMove.move);
     
             int result = quiescence(b, alpha, beta);
+            if(stopSearch){
+                undoMove(b, bestMove.move);
+                b->ply--;
+                return 0;
+            }
             if(result < best){
                 best = result;
             }
@@ -125,6 +142,11 @@ int quiescence(Board* b, int alpha, int beta){ // add back ttTables
 }
 
 int searchHelp(Board* b, int alpha, int beta, smol depth){
+    if(timeUp()){
+        stopSearch = 1;
+        return 0;
+    }
+
     if(b->halfMoveClock >= 100)
         return 0;
     if(positionRepeats(b))
@@ -132,7 +154,7 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
     
     int best = INT32_MIN;
     int chosenMove = NO_MOVE;
-    
+
     if(!hasLegalMove(b)){
         if(squareAttacked(b, __builtin_ctzll(b->pieces[WK + 6 * b->turn]), b->turn))
             return b->turn ? -MATE_SCORE + b->ply : MATE_SCORE - b->ply;
@@ -151,14 +173,16 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
             alpha = ttState.score > alpha ? ttState.score : alpha;
         else
             beta = ttState.score < beta ? ttState.score : beta;
+        if(alpha >= beta){
+            return ttState.score;
+        }
     }
-    if(alpha >= beta){
-        return ttState.score;
-    }
+
+    int alphaUsed = alpha;
+    int betaUsed = beta;
 
     MoveList m;
     generateMoves(b, &m);
-    smol flag = EXACT;
     
     scoredMove scoredMoves[m.count];
     
@@ -213,6 +237,12 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
             makeMove(b, bestMove.move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
+            if(stopSearch){
+                undoMove(b, bestMove.move);
+                b->ply--;
+                return 0;
+            }
+
             if(result > best){
                 chosenMove = bestMove.move;
                 best = result;
@@ -235,8 +265,6 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
                     smol to = (bestMove.move >> 6) & 0x3f;
                     b->historyHueristic[from][to] += depth * depth;
                 }
-
-                flag = LOWER;
                 break;
             }
         }
@@ -250,6 +278,11 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
             makeMove(b, bestMove.move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
+            if(stopSearch){
+                undoMove(b, bestMove.move);
+                b->ply--;
+                return 0;
+            }
             if(result < best){
                 chosenMove = bestMove.move;
                 best = result;
@@ -272,13 +305,13 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
                     smol to = (bestMove.move >> 6) & 0x3f;
                     b->historyHueristic[from][to] += depth * depth;
                 }
-
-                flag = UPPER;
                 break;
             }
         }
     }
-
+        smol flag = best <= alphaUsed ? UPPER
+          : best >= betaUsed  ? LOWER
+          :                     EXACT;
         TranspositionTableItem ttItem = {.score = best, .bestMove = chosenMove, .flag = flag, .depth = depth};
         put(&b->transpositionTable, b->hash, ttItem);
 
@@ -286,17 +319,25 @@ int searchHelp(Board* b, int alpha, int beta, smol depth){
 }
 
 move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta pruning
+    
     int best = INT32_MIN;
     move bestMove = NO_MOVE;
 
     if(b->halfMoveClock >= 100)
         return NO_MOVE;
-    
+
     MoveList m;
     generateMoves(b, &m);
 
     if(m.count == 0)
         return NO_MOVE;
+
+    if(timeUp()){
+        if(previousMove == NO_MOVE)
+            return m.moves[0];
+        else
+            return previousMove;
+    }
 
     scoredMove scoredMoves[m.count];
     TranspositionTableItem ttState = get(&b->transpositionTable, b->hash);
@@ -348,8 +389,13 @@ move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta
         for(int i = 0; i < m.count; i++){
             b->ply++;
             makeMove(b, scoredMoves[i].move);
-    
+            
             int result = searchHelp(b, alpha, beta, depth - 1);
+            if(stopSearch){
+                undoMove(b, scoredMoves[i].move);
+                b->ply--;
+                return previousMove;
+            }
             if(result > best){
                 best = result;
                 bestMove = scoredMoves[i].move;
@@ -368,6 +414,11 @@ move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta
             makeMove(b, scoredMoves[i].move);
     
             int result = searchHelp(b, alpha, beta, depth - 1);
+            if(stopSearch){
+                undoMove(b, scoredMoves[i].move);
+                b->ply--;
+                return 0;
+            }
             if(result < best){
                 best = result;
                 bestMove = scoredMoves[i].move;
@@ -385,6 +436,7 @@ move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta
 
 move search(Board* b, smol depth){
     move bestMove = NO_MOVE;
+    stopSearch = 0;
 
     if(b->halfMoveClock >= 100)
         return NO_MOVE;
