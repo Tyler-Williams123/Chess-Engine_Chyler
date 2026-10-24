@@ -8,7 +8,7 @@
 #include "board.h"
 #include "moveGeneration.h"
 #include "search.h"
-#include "debugtools.h"
+// #include "debugtools.h" commented out because it was causing a compilation error in the unit test file
 
 Board board;
 

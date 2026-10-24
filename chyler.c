@@ -9,6 +9,9 @@
 #include "moveGeneration.h"
 #include "search.h"
 #include "debugtools.h"
+#include "Timer.h"
+
+#define MAX_SEARCH_DEPTH 64
 
 Board board;
 
@@ -74,8 +77,11 @@ int main(){ // add options, pondering, and time, figure out why bestmove is alwa
             
             if(token != NULL && strncmp("depth", token, 5) == 0){
                 token = strtok(NULL, " ");
+                int depth = token != NULL ? atoi(token) : 1;
+                if(depth < 1) depth = 1;
+                if(depth > MAX_SEARCH_DEPTH) depth = MAX_SEARCH_DEPTH;
                 setTimer(-1);
-                move bestMove = search(&board, atoi(token));
+                move bestMove = search(&board, depth);
                 if(bestMove == NO_MOVE){
                     printf("bestmove 0000\n");
                 }
@@ -89,8 +95,7 @@ int main(){ // add options, pondering, and time, figure out why bestmove is alwa
             if(token != NULL && strncmp("movetime", token, 8) == 0){
                 token = strtok(NULL, " ");
                 if(token != NULL){
-                    smol timeLimit = atoi(token);
-                    setTimer(timeLimit);
+                    setTimer((u64)atoll(token)); // smol would truncate to 8 bits
                 }
                 else{
                     printf("invalid movetime command\n");
@@ -98,7 +103,8 @@ int main(){ // add options, pondering, and time, figure out why bestmove is alwa
                     continue;
                 }
                 
-                move bestMove = search(&board, atoi(token));
+                move bestMove = search(&board, MAX_SEARCH_DEPTH); // the timer ends the search, not the depth
+                setTimer(-1);
                 if(bestMove == NO_MOVE){
                     printf("bestmove 0000\n");
                 }

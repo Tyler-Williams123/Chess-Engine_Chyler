@@ -2,6 +2,9 @@
 #include "defs.h"
 #include <time.h>
 
+// get_time_ms: milliseconds from a monotonic clock. The argument is unused.
+u64 get_time_ms(void* unused);
+
 typedef struct{
     u64 timer;
     u64 timeLimit;

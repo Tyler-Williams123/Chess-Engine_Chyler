@@ -10,9 +10,11 @@
 smol stopSearch = 0;
 
 smol positionRepeats(Board* b){
-    smol stop = b->ply - b->halfMoveClock;
-    stop = stop >= 0 ? stop : 0;
-    for(int i = b->ply - 2; i >= stop; i -= 2){
+    // history[k].hash is the hash of the position *before* the move that made ply == k,
+    // so the position at ply p-2 (same side to move) is stored in history[p-1].
+    int stop = b->ply - b->halfMoveClock + 1;
+    if(stop < 1) stop = 1;
+    for(int i = b->ply - 1; i >= stop; i -= 2){
         if(b->hash == b->history[i].hash){
             return 1;
         }
@@ -382,6 +384,8 @@ move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta
         scoredMoves[bestIndex] = temp;
     }
 
+    move fallback = previousMove != NO_MOVE ? previousMove : scoredMoves[0].move;
+
     int alpha = INT32_MIN;
     int beta = INT32_MAX;
 
@@ -394,7 +398,7 @@ move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta
             if(stopSearch){
                 undoMove(b, scoredMoves[i].move);
                 b->ply--;
-                return previousMove;
+                return fallback;
             }
             if(result > best){
                 best = result;
@@ -417,7 +421,7 @@ move iterativeDeepen(Board* b, smol depth, move previousMove){ // add alpha beta
             if(stopSearch){
                 undoMove(b, scoredMoves[i].move);
                 b->ply--;
-                return 0;
+                return fallback;
             }
             if(result < best){
                 best = result;

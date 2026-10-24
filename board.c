@@ -20,17 +20,18 @@ char* moveToString(move m, char* b){
     b[3] = rank;
 
     if(promotionPiece != Empty){
-        switch((promotionPiece - 1) % 6){
-            case(WN): b[4] = 'n';
-            case(WB): b[4] = 'b';
-            case(WR): b[4] = 'r';
-            case(WQ): b[4] = 'q';
+        switch(promotionPiece % 6){ // WN..WQ = 2..5, BN..BQ = 8..11
+            case(WN): b[4] = 'n'; break;
+            case(WB): b[4] = 'b'; break;
+            case(WR): b[4] = 'r'; break;
+            case(WQ): b[4] = 'q'; break;
         }
         b[5] = '\0';
     }
     else
         b[4] = '\0';
 
+    return b;
 }
 
 move parseMove(char* move, Board* b){
@@ -58,8 +59,10 @@ move parseMove(char* move, Board* b){
     smol flag = None;
     if(piece == WP || piece == BP){
         flag = (from - to) * (from - to) > 255 ? DoublePP : flag;
-        if(b->enPessant && to == __builtin_ctzll(b->enPessant))
+        if(b->enPessant && to == __builtin_ctzll(b->enPessant)){
             flag = EnPessant;
+            cPiece = piece == WP ? BP : WP; // the captured pawn is not on the target square
+        }
     }
     else if(piece == WK || piece == BK){
         if((from - to) * (from - to) == 4)
@@ -73,7 +76,6 @@ void initZobrist(ZobristHash* zobrist){
     for(int i = 0; i <= HHash; i++){
         zobrist->randoms[i] = rand64();
     }
-    dictInit(&zobrist->table, 20);
 }
 
 u64 zobrist(Board* b){
@@ -120,11 +122,11 @@ int fullEvaluate(Board* b){
         smol color = b->pieceArr[sq] > 6 ? Black : White;
         if(color){
             b->scores[Black] += pieceValue[(b->pieceArr[sq] - 1) % 6];
-            b->scores[Black] += pieceSQTable[b->pieceArr[sq] - 6][sq ^ 56];
+            b->scores[Black] += pieceSQTable[b->pieceArr[sq] - 6][sq];
         }
         else{
             b->scores[White] += pieceValue[(b->pieceArr[sq] - 1)];
-            b->scores[White] += pieceSQTable[b->pieceArr[sq]][sq];
+            b->scores[White] += pieceSQTable[b->pieceArr[sq]][sq ^ 56];
         }
     }
 
@@ -138,6 +140,7 @@ int evaluate(Board* b){
 void FENInit(Board* board, char* FEN){ // half move clock is just set to zero
     ZobristHash z;
     initZobrist(&z);
+    if(board->transpositionTable.data != NULL) free(board->transpositionTable.data); // Board must start zeroed
     dictInit(&board->transpositionTable, 20);
     board->zobristHash = z;
 
@@ -256,6 +259,7 @@ void FENInit(Board* board, char* FEN){ // half move clock is just set to zero
 void initBoard(Board* board){
     ZobristHash z;
     initZobrist(&z);
+    if(board->transpositionTable.data != NULL) free(board->transpositionTable.data); // Board must start zeroed
     dictInit(&board->transpositionTable, 20);
     board->zobristHash = z;
     board->turn = 0;
@@ -439,8 +443,8 @@ void makeMove(Board* b, move m){
         b->allPieces |= 1ULL << rTo;
         b->hash ^= b->zobristHash.randoms[(rook - 1) * 64 + rTo];
 
-        b->scores[color] -= pieceSQTable[WR][rFrom];
-        b->scores[color] += pieceSQTable[WR][rTo];
+        b->scores[color] -= pieceSQTable[WR][rFrom ^ ((color ^ 1) * 56)];
+        b->scores[color] += pieceSQTable[WR][rTo ^ ((color ^ 1) * 56)];
     }
     else if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
@@ -454,7 +458,7 @@ void makeMove(Board* b, move m){
         b->pieceArr[EPCaptureSQ] = Empty;
         
         b->scores[cColor] -= pieceValue[WP - 1];
-        b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ (cColor * 56)];
+        b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ ((cColor ^ 1) * 56)];
     }
     else if(cPiece != Empty){
         b->halfMoveClock = 0;
@@ -466,7 +470,7 @@ void makeMove(Board* b, move m){
         b->hash ^= b->zobristHash.randoms[(cPiece - 1) * 64 + to];
 
         b->scores[cColor] -= pieceValue[(cPiece - 1) % 6];
-        b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
+        b->scores[cColor] -= pieceSQTable[cPiece - (cColor * 6)][to ^ ((cColor ^ 1) * 56)];
         
         switch(to){
             case(A1): b->castleRights &= 0b1101; break;
@@ -508,11 +512,11 @@ void makeMove(Board* b, move m){
         b->hash ^= b->zobristHash.randoms[__builtin_ctzll(b->enPessant) % 8 + AHash];
     }
 
-    b->scores[color] -= pieceSQTable[movingPiece - (color * 6)][from ^ (color * 56)];
+    b->scores[color] -= pieceSQTable[movingPiece - (color * 6)][from ^ ((color ^ 1) * 56)];
     b->scores[color] -= pieceValue[(movingPiece - 1) % 6];
     
     b->scores[color] += pieceValue[(piece - 1) % 6];
-    b->scores[color] += pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
+    b->scores[color] += pieceSQTable[piece - (color * 6)][to ^ ((color ^ 1) * 56)];
 }
 
 void undoMove(Board* b, move m){
@@ -537,7 +541,7 @@ void undoMove(Board* b, move m){
     b->coloredPieces[color] |= 1ULL << from;
     
     b->scores[color] += pieceValue[(piece - 1) % 6];
-    b->scores[color] += pieceSQTable[piece - (color * 6)][from ^ (color * 56)];
+    b->scores[color] += pieceSQTable[piece - (color * 6)][from ^ ((color ^ 1) * 56)];
 
     if(pPiece){
         b->pieceArr[from] = piece;
@@ -545,7 +549,7 @@ void undoMove(Board* b, move m){
     }
 
     b->scores[color] -= pieceValue[(piece - 1) % 6];
-    b->scores[color] -= pieceSQTable[piece - (color * 6)][to ^ (color * 56)];
+    b->scores[color] -= pieceSQTable[piece - (color * 6)][to ^ ((color ^ 1) * 56)];
     
     b->allPieces &= ~(1ULL << to);
     b->pieces[piece] &= ~(1ULL << to);
@@ -572,8 +576,8 @@ void undoMove(Board* b, move m){
         b->pieces[rook] |= (1ULL << rFrom);
         b->allPieces |= 1ULL << rFrom;
 
-        b->scores[color] -= pieceSQTable[WR][rTo];
-        b->scores[color] += pieceSQTable[WR][rFrom];
+        b->scores[color] -= pieceSQTable[WR][rTo ^ ((color ^ 1) * 56)];
+        b->scores[color] += pieceSQTable[WR][rFrom ^ ((color ^ 1) * 56)];
     }
     else if(enPessant){
         smol EPCaptureSQ = color ? to + 8 : to - 8;
@@ -587,7 +591,7 @@ void undoMove(Board* b, move m){
         b->coloredPieces[cColor] |= 1ULL << EPCaptureSQ;
 
         b->scores[cColor] += pieceValue[WP - 1];
-        b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ (cColor * 56)];
+        b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][EPCaptureSQ ^ ((cColor ^ 1) * 56)];
     }
     else if(cPiece != Empty){
         smol cColor = cPiece > 6 ? Black : White;
@@ -596,7 +600,7 @@ void undoMove(Board* b, move m){
         b->coloredPieces[cColor] |= 1ULL << to;
 
         b->scores[cColor] += pieceValue[(cPiece - 1) % 6];
-        b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][to ^ (cColor * 56)];
+        b->scores[cColor] += pieceSQTable[cPiece - (cColor * 6)][to ^ ((cColor ^ 1) * 56)];
     }
 
     b->castleRights = b->history[b->ply].castleRights;
