@@ -74,8 +74,8 @@ int main(){ // add options, pondering, and time, figure out why bestmove is alwa
             
             if(token != NULL && strncmp("depth", token, 5) == 0){
                 token = strtok(NULL, " ");
-                move bestMove = search(&board, atoi(token));
                 setTimer(-1);
+                move bestMove = search(&board, atoi(token));
                 if(bestMove == NO_MOVE){
                     printf("bestmove 0000\n");
                 }
