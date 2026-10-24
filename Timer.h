@@ -4,10 +4,10 @@
 
 typedef struct{
     u64 timer;
-    smol timeLimit;
+    u64 timeLimit;
 } Timer;
 
-Timer *timer;
+extern Timer *timer;
 
 /**
  * Initializes the timer by allocating memory for it.
@@ -19,7 +19,7 @@ void initTimer();
  * @param t The timer to set.
  * @param timeLimit The time limit for the timer in milliseconds from the current time.
  */
-void setTimer(smol timeLimit);
+void setTimer(u64 timeLimit);
 
 /**
  * Checks if the timer has exceeded its time limit.

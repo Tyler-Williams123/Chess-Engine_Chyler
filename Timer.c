@@ -4,7 +4,7 @@ void initTimer(){
     timer = malloc(sizeof(Timer));
 }
 
-void setTimer(smol timeLimit){
+void setTimer(u64 timeLimit){
         if(timer == NULL){
             initTimer();
         }
