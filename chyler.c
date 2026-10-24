@@ -12,7 +12,7 @@
 
 Board board;
 
-int main(){ // add options, pondering, iterative deepining, and time, figure out why bestmove is always b1b2
+int main(){ // add options, pondering, and time, figure out why bestmove is always b1b2
     char line[4000];
     initBoard(&board);
 
@@ -75,6 +75,7 @@ int main(){ // add options, pondering, iterative deepining, and time, figure out
             if(token != NULL && strncmp("depth", token, 5) == 0){
                 token = strtok(NULL, " ");
                 move bestMove = search(&board, atoi(token));
+                setTimer(-1);
                 if(bestMove == NO_MOVE){
                     printf("bestmove 0000\n");
                 }
